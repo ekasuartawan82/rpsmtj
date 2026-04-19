@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RPS MTJ - Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#e8e8ea",
+                    "on-background": "#1a1c1d",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#008645",
+                    "on-surface-variant": "#414753",
+                    "tertiary-fixed-dim": "#44e183",
+                    "secondary": "#5e5e63",
+                    "surface-tint": "#005cbb",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed-variant": "#005228",
+                    "primary": "#0059b5",
+                    "on-tertiary-fixed": "#00210d",
+                    "surface-dim": "#d9dadc",
+                    "on-secondary-fixed-variant": "#46464b",
+                    "surface-container-low": "#f3f3f5",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#fcfbff",
+                    "secondary-container": "#e0dfe4",
+                    "tertiary-fixed": "#66fe9c",
+                    "on-error": "#ffffff",
+                    "tertiary": "#006a36",
+                    "outline": "#717785",
+                    "primary-fixed-dim": "#abc7ff",
+                    "surface-bright": "#f9f9fb",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#e3e2e7",
+                    "inverse-primary": "#abc7ff",
+                    "surface-container": "#eeeef0",
+                    "surface-container-highest": "#e2e2e4",
+                    "on-secondary-container": "#626267",
+                    "background": "#f9f9fb",
+                    "on-tertiary-container": "#f4fff2",
+                    "secondary-fixed-dim": "#c7c6cb",
+                    "inverse-surface": "#2f3132",
+                    "inverse-on-surface": "#f0f0f2",
+                    "on-primary-fixed": "#001b3f",
+                    "on-secondary-fixed": "#1a1b1f",
+                    "on-secondary": "#ffffff",
+                    "outline-variant": "#c1c6d6",
+                    "on-tertiary": "#ffffff",
+                    "surface": "#f9f9fb",
+                    "on-surface": "#1a1c1d",
+                    "on-primary-fixed-variant": "#00458f",
+                    "primary-fixed": "#d7e2ff",
+                    "surface-variant": "#e2e2e4",
+                    "primary-container": "#0071e3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- TopNavBar (Mobile) -->
+<nav class="md:hidden fixed top-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-surface-container-high no-shadows flex justify-between items-center px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="text-xl font-bold tracking-[-0.02em] text-on-surface">RPS MTJ</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-primary font-medium tracking-tight hover:opacity-80 transition-all">RPS Saya</button>
+<button class="text-outline font-medium tracking-tight hover:opacity-80 transition-all">Keluar</button>
+</div>
+</nav>
+<!-- SideNavBar (Web) -->
+<aside class="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 bg-surface border-r border-surface-container-high py-6 gap-1 z-40">
+<div class="px-6 mb-6">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden flex items-center justify-center">
+<img alt="Poltrada Bali Logo" class="w-full h-full object-cover" data-alt="Abstract academic logo with blue and gray geometric shapes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJpAE6uv94UvsuSTHkiLnqy5bvyH2A07HDTRtSw7syB1Rcp1W1Obxe6yie9WO_HCcF4wD5xyxZD_TK-Apfiiu2OHZl08UCYVkXF0EsiOBP2ExLfY3o7h9HjDIwYvZCxestCc_tpXpwic68bJTIwK07icN9AgzAH-lM_cTks6URfUNLiPIYBLHDmoIXUOMrb68VnW1qwAJI0H5on1nSe8HCVYbZfeoHgo7IKw2vG-83-F8G6KgvOkk6P8B9sG-RPOGWePeRe9I_4CSE"/>
+</div>
+<div>
+<h1 class="text-lg font-black text-on-surface leading-tight tracking-tight">RPS MTJ Admin</h1>
+<p class="text-xs text-secondary font-medium">Poltrada Bali</p>
+</div>
+</div>
+<button class="mt-4 w-full bg-primary-container text-on-primary rounded-full py-2.5 px-4 font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">add</span>
+                Buat Syllabus Baru
+            </button>
+</div>
+<nav class="flex flex-col gap-1 px-2">
+<!-- Active Tab -->
+<a class="bg-primary-container text-on-primary rounded-full px-4 py-2 flex items-center gap-3 scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-['Inter'] text-sm font-medium tracking-tight">Dashboard</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-['Inter'] text-sm font-medium tracking-tight">Daftar RPS</span>
+</a>
+<a class="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">account_balance</span>
+<span class="font-['Inter'] text-sm font-medium tracking-tight">Manajemen Jurusan</span>
+</a>
+<a class="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-['Inter'] text-sm font-medium tracking-tight">Akses Pengguna</span>
+</a>
+<a class="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-['Inter'] text-sm font-medium tracking-tight">Pengaturan</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 md:ml-60 pt-20 md:pt-10 px-6 md:px-12 pb-24">
+<header class="mb-10">
+<p class="text-label font-medium tracking-[0.05em] text-secondary mb-2 uppercase">RINGKASAN SISTEM</p>
+<h1 class="font-headline text-4xl font-bold tracking-[-0.04em] text-on-surface">Dashboard Admin</h1>
+</header>
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">group</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">24</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">Total Pengguna</p>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">how_to_reg</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">18</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">Pengguna Aktif</p>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">2</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">Kurikulum</p>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">12</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">CPL Prodi</p>
+</div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">library_books</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">38</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">Mata Kuliah</p>
+</div>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">category</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">6</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">Rumpun MK</p>
+</div>
+</div>
+</div>
+<!-- Card 7 -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
+<div class="flex flex-col h-full justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div>
+<p class="text-5xl font-extrabold tracking-tight text-on-surface mb-1">145</p>
+<p class="text-xs font-medium tracking-[0.05em] text-secondary uppercase">Whitelist KKO</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-xl border-t border-surface-container-high pb-safe pt-2 px-6 flex justify-between items-center no-shadows">
+<a class="flex flex-col items-center gap-1 text-primary-container" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-medium font-['Inter']">Dashboard</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-secondary hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-medium font-['Inter']">RPS</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-secondary hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-medium font-['Inter']">Pengaturan</span>
+</a>
+</nav>
+</body></html>

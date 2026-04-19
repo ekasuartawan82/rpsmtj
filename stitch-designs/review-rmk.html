@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Antrian Review RPS - Koordinator RMK</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e8e8ea",
+                        "on-background": "#1a1c1d",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#008645",
+                        "on-surface-variant": "#414753",
+                        "tertiary-fixed-dim": "#44e183",
+                        "secondary": "#5e5e63",
+                        "surface-tint": "#005cbb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005228",
+                        "primary": "#0059b5",
+                        "on-tertiary-fixed": "#00210d",
+                        "surface-dim": "#d9dadc",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "surface-container-low": "#f3f3f5",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#fcfbff",
+                        "secondary-container": "#e0dfe4",
+                        "tertiary-fixed": "#66fe9c",
+                        "on-error": "#ffffff",
+                        "tertiary": "#006a36",
+                        "outline": "#717785",
+                        "primary-fixed-dim": "#abc7ff",
+                        "surface-bright": "#f9f9fb",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#e3e2e7",
+                        "inverse-primary": "#abc7ff",
+                        "surface-container": "#eeeef0",
+                        "surface-container-highest": "#e2e2e4",
+                        "on-secondary-container": "#626267",
+                        "background": "#f9f9fb",
+                        "on-tertiary-container": "#f4fff2",
+                        "secondary-fixed-dim": "#c7c6cb",
+                        "inverse-surface": "#2f3132",
+                        "inverse-on-surface": "#f0f0f2",
+                        "on-primary-fixed": "#001b3f",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c1c6d6",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f9f9fb",
+                        "on-surface": "#1a1c1d",
+                        "on-primary-fixed-variant": "#00458f",
+                        "primary-fixed": "#d7e2ff",
+                        "surface-variant": "#e2e2e4",
+                        "primary-container": "#0071e3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body min-h-screen pt-24 pb-12">
+<!-- TopNavBar JSON Mapping -->
+<nav class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl font-['Inter'] tracking-[-0.02em] font-medium fixed top-0 w-full z-50 border-b border-gray-100 dark:border-gray-800">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-[900px] mx-auto">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold text-slate-900 dark:text-white">RPS MTJ</span>
+</div>
+<div class="flex items-center gap-6">
+<!-- Navigation Items -->
+<a class="text-slate-500 dark:text-slate-400 hover:opacity-80 transition-all" href="#">Dashboard</a>
+<a class="text-[#0071e3] font-bold hover:opacity-80 transition-all" href="#">Daftar RPS</a>
+<a class="text-slate-500 dark:text-slate-400 hover:opacity-80 transition-all" href="#">Manajemen Jurusan</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-500 dark:text-slate-400 hover:opacity-80 transition-all">RPS Saya</button>
+<button class="text-error hover:opacity-80 transition-all">Keluar</button>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="close up professional headshot of man in blue shirt with neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1Br0XQQFoE25OxeVaIjFg5KdSpsM_zqiYsC63yZjyomxJOlNb3O2Vrg0Fd8ne9-2nGVbfIwF-kUAqDvrWNWD5PlXxUv68Y5D9MCM51f2oL0c54hmK3qaCwIXeWo89gQr9fLniDiOdwkKTR4sR0s7BIf1Tkh2NlGUueQL7FjCYEcwu98J0E6lR6FUiXRVtQw-mUxBFHKmP0PEXc9ar_6pNcyuR05kFB0tdkbhPghaUwdK84i-qW-alpq5TB0IdvyLMNNXL2kWNDUXP"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="max-w-[900px] mx-auto px-6">
+<!-- Header -->
+<header class="mb-12 mt-8">
+<span class="text-sm font-medium tracking-[+0.05em] uppercase text-secondary mb-2 block font-label">KOORDINATOR RMK</span>
+<h1 class="text-[2rem] font-bold tracking-[-0.04em] text-on-surface font-headline leading-tight">Antrian Review RPS</h1>
+</header>
+<!-- Pending Section -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-sm font-medium tracking-[+0.05em] uppercase text-on-surface font-label">MENUNGGU REVIEW <span class="bg-error text-white rounded-full px-2 py-0.5 ml-2 text-xs">3</span></h2>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-xs font-medium tracking-[+0.05em] uppercase text-secondary">
+<th class="px-6 py-4 font-normal">Dosen</th>
+<th class="px-6 py-4 font-normal">Mata Kuliah</th>
+<th class="px-6 py-4 font-normal">Diajukan</th>
+<th class="px-6 py-4 font-normal">Versi</th>
+<th class="px-6 py-4 font-normal">Status</th>
+<th class="px-6 py-4 font-normal text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<!-- Row 1 -->
+<tr class="group hover:bg-surface-container-low transition-colors duration-200">
+<td class="px-6 py-5 align-middle text-on-surface font-medium">Aswin</td>
+<td class="px-6 py-5 align-middle">
+<div class="font-medium text-on-surface">Manajemen Logistik</div>
+<div class="text-secondary text-xs mt-1">MK-101</div>
+</td>
+<td class="px-6 py-5 align-middle text-secondary">18 Apr 2025</td>
+<td class="px-6 py-5 align-middle text-secondary">v1</td>
+<td class="px-6 py-5 align-middle">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dbeafe] text-[#1e40af]">
+                                        Menunggu Review RMK
+                                    </span>
+</td>
+<td class="px-6 py-5 align-middle text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Detail">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 text-[#166534] hover:bg-[#dcfce7]/50 rounded-full transition-colors" title="Setujui">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+</button>
+<button class="p-2 text-error hover:bg-error-container/50 rounded-full transition-colors" title="Revisi">
+<span class="material-symbols-outlined text-[20px]">assignment_return</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="group hover:bg-surface-container-low transition-colors duration-200">
+<td class="px-6 py-5 align-middle text-on-surface font-medium">Budi Santoso</td>
+<td class="px-6 py-5 align-middle">
+<div class="font-medium text-on-surface">Rantai Pasok Global</div>
+<div class="text-secondary text-xs mt-1">MK-204</div>
+</td>
+<td class="px-6 py-5 align-middle text-secondary">19 Apr 2025</td>
+<td class="px-6 py-5 align-middle text-secondary">v2</td>
+<td class="px-6 py-5 align-middle">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dbeafe] text-[#1e40af]">
+                                        Menunggu Review RMK
+                                    </span>
+</td>
+<td class="px-6 py-5 align-middle text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Detail">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 text-[#166534] hover:bg-[#dcfce7]/50 rounded-full transition-colors" title="Setujui">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+</button>
+<button class="p-2 text-error hover:bg-error-container/50 rounded-full transition-colors" title="Revisi">
+<span class="material-symbols-outlined text-[20px]">assignment_return</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Processed Section -->
+<section>
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-sm font-medium tracking-[+0.05em] uppercase text-on-surface font-label">SUDAH DIPROSES</h2>
+</div>
+<div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] opacity-80">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-xs font-medium tracking-[+0.05em] uppercase text-secondary">
+<th class="px-6 py-4 font-normal">Dosen</th>
+<th class="px-6 py-4 font-normal">Mata Kuliah</th>
+<th class="px-6 py-4 font-normal">Diproses</th>
+<th class="px-6 py-4 font-normal">Versi</th>
+<th class="px-6 py-4 font-normal">Status</th>
+<th class="px-6 py-4 font-normal text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<!-- Row Approved -->
+<tr class="group hover:bg-surface-container-low transition-colors duration-200">
+<td class="px-6 py-5 align-middle text-on-surface font-medium">Siti Aminah</td>
+<td class="px-6 py-5 align-middle">
+<div class="font-medium text-on-surface">Ekonomi Transportasi</div>
+<div class="text-secondary text-xs mt-1">MK-105</div>
+</td>
+<td class="px-6 py-5 align-middle text-secondary">15 Apr 2025</td>
+<td class="px-6 py-5 align-middle text-secondary">v1</td>
+<td class="px-6 py-5 align-middle">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dcfce7] text-[#166534]">
+                                        Disetujui RMK
+                                    </span>
+</td>
+<td class="px-6 py-5 align-middle text-right">
+<button class="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Detail">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row Revision -->
+<tr class="group hover:bg-surface-container-low transition-colors duration-200">
+<td class="px-6 py-5 align-middle text-on-surface font-medium">Joko Widodo</td>
+<td class="px-6 py-5 align-middle">
+<div class="font-medium text-on-surface">Hukum Bisnis</div>
+<div class="text-secondary text-xs mt-1">MK-302</div>
+</td>
+<td class="px-6 py-5 align-middle text-secondary">14 Apr 2025</td>
+<td class="px-6 py-5 align-middle text-secondary">v1</td>
+<td class="px-6 py-5 align-middle">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#fee2e2] text-[#991b1b]">
+                                        Revisi dari RMK
+                                    </span>
+</td>
+<td class="px-6 py-5 align-middle text-right">
+<button class="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Detail">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+</body></html>

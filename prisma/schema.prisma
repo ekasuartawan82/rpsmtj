@@ -1,0 +1,447 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  dosen
+  koordinator_rmk
+  kaprodi
+  admin
+}
+
+enum CplKategori {
+  S
+  P
+  KU
+  KK
+}
+
+enum RpsWorkflowStatus {
+  draft
+  submitted_to_rmk
+  revision_requested_by_rmk
+  submitted_to_kaprodi
+  revision_requested_by_kaprodi
+  approved
+}
+
+enum RpsRecordStatus {
+  active
+  superseded
+  archived
+  revoked
+}
+
+// Legacy alias for backward compatibility
+enum RpsStatus {
+  draft
+  submitted_to_rmk
+  revision_requested_by_rmk
+  approved_by_rmk
+  submitted_to_kaprodi
+  revision_requested_by_kaprodi
+  approved
+  superseded
+}
+
+enum PertemuanType {
+  reguler
+  ets
+  eas
+}
+
+enum TeknikPenilaian {
+  test
+  non_test
+}
+
+enum KriteriaPenilaian {
+  rubrik_holistik
+  rubrik_deskriptif
+  marking_scheme
+}
+
+enum StatusPelaksanaan {
+  terlaksana
+  tidak_terlaksana
+  diganti
+}
+
+enum PustakaKategori {
+  utama
+  pendukung
+}
+
+enum MetodePenugasan {
+  terstruktur
+  mandiri
+  akhir
+}
+
+enum ApprovalAction {
+  submit_to_rmk
+  approve_rmk
+  reject_rmk
+  submit_to_kaprodi
+  approve_kaprodi
+  reject_kaprodi
+  clone_for_revision
+  supersede
+  acknowledge_warning
+}
+
+enum RpsNotificationType {
+  submitted_to_rmk
+  approved_by_rmk
+  revision_requested_by_rmk
+  submitted_to_kaprodi
+  approved
+  revision_requested_by_kaprodi
+}
+
+model KurikulumVersi {
+  id           String      @id @default(uuid()) @db.Uuid
+  tahun        String      @db.VarChar(9)
+  label        String      @db.VarChar(191)
+  isActive     Boolean     @default(false) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  cplProdi     CplProdi[]
+  mataKuliah   MataKuliah[]
+  rpsDocuments Rps[]
+
+  @@map("kurikulum_versi")
+}
+
+model User {
+  id               String             @id @default(uuid()) @db.Uuid
+  nama             String             @db.VarChar(191)
+  nidn             String?            @unique @db.VarChar(191)
+  email            String             @unique @db.VarChar(191)
+  passwordHash     String             @map("password_hash") @db.VarChar(255)
+  role             UserRole
+  isActive         Boolean            @default(true) @map("is_active")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvalLogs     RpsApprovalLog[]
+  createdRps       Rps[]              @relation("RpsCreator")
+  developedRps     Rps[]              @relation("RpsDeveloper")
+  coordinatedRps   Rps[]              @relation("RpsCoordinator")
+  kaprodiRps       Rps[]              @relation("RpsKaprodi")
+  pengampuEntries  RpsDosenPengampu[]
+  notifications    RpsNotification[]
+
+  @@map("users")
+}
+
+model RumpunMk {
+  id         String       @id @default(uuid()) @db.Uuid
+  nama       String       @db.VarChar(191)
+  mataKuliah MataKuliah[]
+
+  @@map("rumpun_mk")
+}
+
+model MataKuliah {
+  id                String          @id @default(uuid()) @db.Uuid
+  kode              String          @unique @db.VarChar(191)
+  nama              String          @db.VarChar(191)
+  rumpunId          String?         @map("rumpun_id") @db.Uuid
+  sksTeori          Int             @default(0) @map("sks_teori")
+  sksPraktik        Int             @default(0) @map("sks_praktik")
+  semester          Int
+  kurikulumVersiId  String          @map("kurikulum_versi_id") @db.Uuid
+  isActive          Boolean         @default(true) @map("is_active")
+  kurikulumVersi    KurikulumVersi  @relation(fields: [kurikulumVersiId], references: [id])
+  rumpun            RumpunMk?       @relation(fields: [rumpunId], references: [id])
+  rpsDocuments      Rps[]
+
+  @@map("mata_kuliah")
+}
+
+model CplProdi {
+  id                String          @id @default(uuid()) @db.Uuid
+  kurikulumVersiId  String          @map("kurikulum_versi_id") @db.Uuid
+  kode              String          @db.VarChar(191)
+  kategori          CplKategori
+  deskripsi         String          @db.Text
+  urutan            Int?
+  kurikulumVersi    KurikulumVersi  @relation(fields: [kurikulumVersiId], references: [id])
+  rpsCplEntries     RpsCpl[]
+
+  @@unique([kurikulumVersiId, kode])
+  @@map("cpl_prodi")
+}
+
+model Rps {
+  id                      String              @id @default(uuid()) @db.Uuid
+  mataKuliahId            String              @map("mata_kuliah_id") @db.Uuid
+  kurikulumVersiId        String              @map("kurikulum_versi_id") @db.Uuid
+  tahunAkademik           String              @map("tahun_akademik") @db.VarChar(9)
+  tanggalPenyusunan       DateTime            @default(dbgenerated("CURRENT_DATE")) @map("tanggal_penyusunan") @db.Date
+  dosenPengembangId       String              @map("dosen_pengembang_id") @db.Uuid
+  koordinatorRmkId        String              @map("koordinator_rmk_id") @db.Uuid
+  kaprodiId               String              @map("kaprodi_id") @db.Uuid
+  deskripsiSingkat        String?             @map("deskripsi_singkat") @db.Text
+  bahanKajian             String?             @map("bahan_kajian") @db.Text
+  catatanTambahan         String?             @map("catatan_tambahan") @db.Text
+  versionNo               Int                 @default(1) @map("version_no")
+  parentRpsId             String?             @map("parent_rps_id") @db.Uuid
+
+  // Fase 2 Governance: Dual Status Model
+  workflowStatus          RpsWorkflowStatus   @default(draft) @map("workflow_status")
+  recordStatus            RpsRecordStatus     @default(active) @map("record_status")
+
+  // Legacy compatibility
+  status                  RpsStatus           @default(draft)
+
+  // Fase 2 Governance: Freshness Tracking
+  lastChangedAt           DateTime            @default(now()) @map("last_changed_at") @db.Timestamptz(6)
+  lastReviewedAtByRmk     DateTime?           @map("last_reviewed_at_by_rmk") @db.Timestamptz(6)
+  lastReviewedAtByKaprodi DateTime?           @map("last_reviewed_at_by_kaprodi") @db.Timestamptz(6)
+
+  // Fase 2 Governance: Revision Tracking
+  currentRevisionCount    Int                 @default(0) @map("current_revision_count")
+
+  createdBy               String              @map("created_by") @db.Uuid
+  createdAt               DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  approvalLogs            RpsApprovalLog[]
+  children                Rps[]               @relation("RpsParentChild")
+  createdByUser           User                @relation("RpsCreator", fields: [createdBy], references: [id])
+  dosenPengampu           RpsDosenPengampu[]
+  dosenPengembang         User                @relation("RpsDeveloper", fields: [dosenPengembangId], references: [id])
+  kaprodi                 User                @relation("RpsKaprodi", fields: [kaprodiId], references: [id])
+  koordinatorRmk          User                @relation("RpsCoordinator", fields: [koordinatorRmkId], references: [id])
+  kurikulumVersi          KurikulumVersi      @relation(fields: [kurikulumVersiId], references: [id])
+  mataKuliah              MataKuliah          @relation(fields: [mataKuliahId], references: [id])
+  parent                  Rps?                @relation("RpsParentChild", fields: [parentRpsId], references: [id])
+  rpsCplEntries           RpsCpl[]
+  rpsCpmkEntries          RpsCpmk[]
+  rpsPustakaEntries       RpsPustaka[]
+  rpsRtmEntries           RpsRtm[]
+  subCpmkEntries          RpsSubCpmk[]
+  pertemuanEntries        RpsPertemuan[]
+  notifications           RpsNotification[]
+
+  @@index([mataKuliahId, tahunAkademik])
+  @@map("rps")
+}
+
+model RpsDosenPengampu {
+  id            String   @id @default(uuid()) @db.Uuid
+  rpsId         String   @map("rps_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  isPengembang  Boolean  @default(false) @map("is_pengembang")
+  urutan        Int?
+  rps           Rps      @relation(fields: [rpsId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([rpsId, userId])
+  @@map("rps_dosen_pengampu")
+}
+
+model RpsCpl {
+  id                String           @id @default(uuid()) @db.Uuid
+  rpsId             String           @map("rps_id") @db.Uuid
+  cplId             String           @map("cpl_id") @db.Uuid
+  urutan            Int?
+  cpl               CplProdi         @relation(fields: [cplId], references: [id])
+  rps               Rps              @relation(fields: [rpsId], references: [id])
+  cpmkLinks         RpsCpmkCpl[]
+  korelasiLinks     RpsKorelasiCpl[]
+
+  @@unique([rpsId, cplId])
+  @@map("rps_cpl")
+}
+
+model RpsCpmk {
+  id                String           @id @default(uuid()) @db.Uuid
+  rpsId             String           @map("rps_id") @db.Uuid
+  kode              String           @db.VarChar(191)
+  deskripsi         String           @db.Text
+  urutan            Int
+  rps               Rps              @relation(fields: [rpsId], references: [id])
+  cplLinks          RpsCpmkCpl[]
+  subCpmkEntries    RpsSubCpmk[]
+
+  @@unique([rpsId, kode])
+  @@map("rps_cpmk")
+}
+
+model RpsCpmkCpl {
+  id           String  @id @default(uuid()) @db.Uuid
+  rpsCpmkId    String  @map("rps_cpmk_id") @db.Uuid
+  rpsCplId     String  @map("rps_cpl_id") @db.Uuid
+  rpsCpl       RpsCpl  @relation(fields: [rpsCplId], references: [id])
+  rpsCpmk      RpsCpmk @relation(fields: [rpsCpmkId], references: [id])
+
+  @@unique([rpsCpmkId, rpsCplId])
+  @@map("rps_cpmk_cpl")
+}
+
+model RpsSubCpmk {
+  id                        String            @id @default(uuid()) @db.Uuid
+  rpsId                     String            @map("rps_id") @db.Uuid
+  rpsCpmkId                 String            @map("rps_cpmk_id") @db.Uuid
+  kode                      String            @db.VarChar(191)
+  deskripsi                 String            @db.Text
+  urutan                    Int
+  targetKetercapaianPersen  Decimal?          @map("target_ketercapaian_persen") @db.Decimal(5, 2)
+  aktualKetercapaianPersen  Decimal?          @map("aktual_ketercapaian_persen") @db.Decimal(5, 2)
+  rps                       Rps               @relation(fields: [rpsId], references: [id])
+  rpsCpmk                   RpsCpmk           @relation(fields: [rpsCpmkId], references: [id])
+  korelasiCpl               RpsKorelasiCpl[]
+  pertemuanEntries          RpsPertemuan[]
+  rtmEntries                RpsRtm[]
+
+  @@map("rps_sub_cpmk")
+}
+
+model RpsKorelasiCpl {
+  id              String      @id @default(uuid()) @db.Uuid
+  rpsSubCpmkId    String      @map("rps_sub_cpmk_id") @db.Uuid
+  rpsCplId        String      @map("rps_cpl_id") @db.Uuid
+  persentase      Decimal     @default(0) @db.Decimal(5, 2)
+  rpsCpl          RpsCpl      @relation(fields: [rpsCplId], references: [id])
+  rpsSubCpmk      RpsSubCpmk  @relation(fields: [rpsSubCpmkId], references: [id])
+
+  @@unique([rpsSubCpmkId, rpsCplId])
+  @@map("rps_korelasi_cpl")
+}
+
+model RpsPertemuan {
+  id                    String               @id @default(uuid()) @db.Uuid
+  rpsId                 String               @map("rps_id") @db.Uuid
+  orderNo               Int                  @map("order_no")
+  weekLabel             String               @map("week_label") @db.VarChar(191) // "1", "4,5", "8", "14,15", "16"
+  tipe                  PertemuanType        @default(reguler)
+  subCpmkId             String?              @map("sub_cpmk_id") @db.Uuid
+  subCpmkText           String?              @map("sub_cpmk_text") @db.Text // Manual text or reference
+  indikatorPenilaian    Json?                @map("indikator_penilaian") // array of strings
+  teknikPenilaian       String?              @map("teknik_penilaian") @db.Text // Custom text instead of enum
+  kriteriaPenilaian     String?              @map("kriteria_penilaian") @db.Text // Custom text instead of enum
+  bentukPembelajaranLuring Json?             @map("bentuk_pembelajaran_luring") // array of strings
+  bentukPembelajaranDaring Json?             @map("bentuk_pembelajaran_daring") // array of strings
+  metodePembelajaran    Json?                @map("metode_pembelajaran") // array of strings
+  catatanPenugasan      String?              @map("catatan_penugasan") @db.Text
+  estimasiWaktuPb       String?              @map("estimasi_waktu_pb") @db.VarChar(191) // "1x(2x50”)"
+  estimasiWaktuPt       String?              @map("estimasi_waktu_pt") @db.VarChar(191) // "1mgx(2sksx60”)"
+  estimasiWaktuKm       String?              @map("estimasi_waktu_km") @db.VarChar(191) // "1x(2x60”)"
+  bentukDaring          String?              @map("bentuk_daring") @db.Text
+  materiPembelajaran    String?              @map("materi_pembelajaran") @db.Text
+  bobotPenilaianPersen  Decimal?             @map("bobot_penilaian_persen") @db.Decimal(5, 2)
+  deskripsiEvaluasi     String?              @map("deskripsi_evaluasi") @db.Text // For UTS/UAS
+  statusPelaksanaan     StatusPelaksanaan?   @map("status_pelaksanaan")
+  materiAktual          String?              @map("materi_aktual") @db.Text
+  catatanDeviasi        String?              @map("catatan_deviasi") @db.Text
+  tanggalPelaksanaan    DateTime?            @map("tanggal_pelaksanaan") @db.Date
+  pustakaRefs           Json?                @map("pustaka_refs") // Array of RpsPustaka IDs
+  notes                 String?              @db.Text
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  rps                   Rps                  @relation(fields: [rpsId], references: [id])
+  subCpmk               RpsSubCpmk?          @relation(fields: [subCpmkId], references: [id])
+  rtmLinks              RpsRtmPertemuan[]
+
+  @@unique([rpsId, orderNo])
+  @@index([rpsId, orderNo])
+  @@map("rps_pertemuan")
+}
+
+model RpsPustaka {
+  id            String           @id @default(uuid()) @db.Uuid
+  rpsId         String           @map("rps_id") @db.Uuid
+  kategori      PustakaKategori
+  teksLengkap   String           @map("teks_lengkap") @db.Text
+  urutan        Int?
+  rps           Rps              @relation(fields: [rpsId], references: [id])
+
+  @@map("rps_pustaka")
+}
+
+model RpsRtm {
+  id                    String              @id @default(uuid()) @db.Uuid
+  rpsId                 String              @map("rps_id") @db.Uuid
+  nomorTugas            String              @map("nomor_tugas") @db.VarChar(191)
+  judulTugas            String              @map("judul_tugas") @db.VarChar(191)
+  subCpmkId             String              @map("sub_cpmk_id") @db.Uuid
+  metodePenugasan       MetodePenugasan     @map("metode_penugasan")
+  deskripsi             String?             @db.Text
+  langkahPengerjaan     String?             @map("langkah_pengerjaan") @db.Text
+  bentukLuaran          String?             @map("bentuk_luaran") @db.Text
+  indikatorPenilaian    String?             @map("indikator_penilaian") @db.Text
+  bobotInternalPersen   Decimal?            @map("bobot_internal_persen") @db.Decimal(5, 2)
+  jadwalPelaksanaan     String?             @map("jadwal_pelaksanaan") @db.Text
+  catatan               String?             @db.Text
+  daftarRujukan         String?             @map("daftar_rujukan") @db.Text
+  rps                   Rps                 @relation(fields: [rpsId], references: [id])
+  subCpmk               RpsSubCpmk          @relation(fields: [subCpmkId], references: [id])
+  pertemuanLinks        RpsRtmPertemuan[]
+
+  @@map("rps_rtm")
+}
+
+model RpsRtmPertemuan {
+  id              String        @id @default(uuid()) @db.Uuid
+  rpsRtmId        String        @map("rps_rtm_id") @db.Uuid
+  rpsPertemuanId  String        @map("rps_pertemuan_id") @db.Uuid
+  keterangan      String?       @db.VarChar(191)
+  rpsRtm          RpsRtm        @relation(fields: [rpsRtmId], references: [id])
+  rpsPertemuan    RpsPertemuan  @relation(fields: [rpsPertemuanId], references: [id])
+
+  @@unique([rpsRtmId, rpsPertemuanId])
+  @@map("rps_rtm_pertemuan")
+}
+
+model RpsApprovalLog {
+  id              String          @id @default(uuid()) @db.Uuid
+  rpsId           String          @map("rps_id") @db.Uuid
+  versionNo       Int             @map("version_no")
+  actorUserId     String          @map("actor_user_id") @db.Uuid
+  actorRole       String          @map("actor_role") @db.VarChar(191)
+  actorName       String          @map("actor_name") @db.VarChar(191)
+  action          String          @db.VarChar(191) // More flexible than enum for governance
+  catatanReview   String?         @map("catatan_review") @db.Text
+
+  // Fase 2 Governance: Revision Round Tracking
+  revisionRound   Int             @default(1) @map("revision_round")
+
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  actorUser       User            @relation(fields: [actorUserId], references: [id])
+  rps             Rps             @relation(fields: [rpsId], references: [id])
+
+  @@index([rpsId, createdAt])
+  @@map("rps_approval_log")
+}
+
+model RpsNotification {
+  id               String               @id @default(uuid()) @db.Uuid
+  recipientUserId  String               @map("recipient_user_id") @db.Uuid
+  rpsId            String               @map("rps_id") @db.Uuid
+  type             RpsNotificationType
+  title            String               @db.VarChar(191)
+  message          String               @db.Text
+  href             String               @db.VarChar(191)
+  isRead           Boolean              @default(false) @map("is_read")
+  readAt           DateTime?            @map("read_at") @db.Timestamptz(6)
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  recipientUser    User                 @relation(fields: [recipientUserId], references: [id])
+  rps              Rps                  @relation(fields: [rpsId], references: [id])
+
+  @@index([recipientUserId, isRead, createdAt])
+  @@index([rpsId, createdAt])
+  @@map("rps_notifications")
+}
+
+model WhitelistKataKerjaOperasional {
+  id         String   @id @default(uuid()) @db.Uuid
+  kata       String   @unique @db.VarChar(191)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("whitelist_kata_kerja_operasional")
+}

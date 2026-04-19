@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RPS MTJ - Detail RPS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e8e8ea",
+                        "on-background": "#1a1c1d",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#008645",
+                        "on-surface-variant": "#414753",
+                        "tertiary-fixed-dim": "#44e183",
+                        "secondary": "#5e5e63",
+                        "surface-tint": "#005cbb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005228",
+                        "primary": "#0059b5",
+                        "on-tertiary-fixed": "#00210d",
+                        "surface-dim": "#d9dadc",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "surface-container-low": "#f3f3f5",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#fcfbff",
+                        "secondary-container": "#e0dfe4",
+                        "tertiary-fixed": "#66fe9c",
+                        "on-error": "#ffffff",
+                        "tertiary": "#006a36",
+                        "outline": "#717785",
+                        "primary-fixed-dim": "#abc7ff",
+                        "surface-bright": "#f9f9fb",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#e3e2e7",
+                        "inverse-primary": "#abc7ff",
+                        "surface-container": "#eeeef0",
+                        "surface-container-highest": "#e2e2e4",
+                        "on-secondary-container": "#626267",
+                        "background": "#f9f9fb",
+                        "on-tertiary-container": "#f4fff2",
+                        "secondary-fixed-dim": "#c7c6cb",
+                        "inverse-surface": "#2f3132",
+                        "inverse-on-surface": "#f0f0f2",
+                        "on-primary-fixed": "#001b3f",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c1c6d6",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f9f9fb",
+                        "on-surface": "#1a1c1d",
+                        "on-primary-fixed-variant": "#00458f",
+                        "primary-fixed": "#d7e2ff",
+                        "surface-variant": "#e2e2e4",
+                        "primary-container": "#0071e3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex justify-between items-center px-6 py-3">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold text-slate-900 dark:text-white">RPS MTJ</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="font-['Inter'] tracking-[-0.02em] font-medium text-[#0071e3] dark:text-[#0071e3] hover:opacity-80 transition-all cursor-pointer active:scale-95 transition-transform">RPS Saya</span>
+<span class="font-['Inter'] tracking-[-0.02em] font-medium text-slate-500 dark:text-slate-400 hover:opacity-80 transition-all cursor-pointer active:scale-95 transition-transform">Keluar</span>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-gray-200 object-cover" data-alt="Portrait of an Indonesian professional in academic attire, warm lighting, soft depth of field" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT1NxzGR9q9f2lfrWiFpj2oPbzl69tZWB8O2nRRXzBuPCP11AuzPmdAawndHTovPMsdEpACZQh7o18ZiOnMfBabfzDz3ov-fcPGa9M3zKxJPwJiEPhyGMGjutC16ySprFVjP8UG3huNA05M5OZAFbNpVJshfVNbaeiwkldlPwjSA7gdDg4WJfMp071CuFimhKUf43oHw5qWqsHvHALzSsbu5h8fLXLbY1nsx1bfosFKpZVv2PRoB3q1tK8Tnne3POslaoz_cMx-EMK"/>
+</div>
+</nav>
+<!-- SideNavBar & Main Content Wrapper -->
+<div class="flex pt-[60px] h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col gap-1 py-6 h-full bg-[#f5f5f7] dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 w-60 flex-shrink-0">
+<div class="px-6 mb-6 flex flex-col gap-1">
+<div class="w-12 h-12 bg-gray-200 rounded-full mb-2 overflow-hidden">
+<img alt="Poltrada Bali Logo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5mtkd8GDCAJQdNfPPMXpwMzgnMeIrzd8d1KJpSxUJW1iYlU6KZuwbxJdtlp9zXo-_WIOR4PbvWhX0BBUXX_He7SIr1i6YbtGljHVtVO4iTVgzD9xsioPZfZCmKtrwJ2ADC76BWycdkas1v60PkgOCH7Ol1RcJJqGCa2X6VsqB-zqf1mS9zrj7UroQBq2vaALCRUKb1LFBX0BbStVL9Io5Xd7LDFgKmxX7XDucwlIUVkooOxCFizWcm0Y5StGQw18c56C8dJW53gsM"/>
+</div>
+<h2 class="text-lg font-black text-slate-900 dark:text-white">RPS MTJ Admin</h2>
+<span class="text-xs text-slate-500">Poltrada Bali</span>
+</div>
+<nav class="flex-1 overflow-y-auto">
+<a class="text-slate-600 dark:text-slate-400 px-4 py-2 mx-2 flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full font-['Inter'] text-sm font-medium tracking-tight hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                    Dashboard
+                </a>
+<a class="bg-[#0071e3] text-white rounded-full px-4 py-2 mx-2 flex items-center gap-3 font-['Inter'] text-sm font-medium tracking-tight hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+                    Daftar RPS
+                </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-2 mx-2 flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full font-['Inter'] text-sm font-medium tracking-tight hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_balance</span>
+                    Manajemen Jurusan
+                </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-2 mx-2 flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full font-['Inter'] text-sm font-medium tracking-tight hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span>
+                    Akses Pengguna
+                </a>
+<a class="text-slate-600 dark:text-slate-400 px-4 py-2 mx-2 flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full font-['Inter'] text-sm font-medium tracking-tight hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+                    Pengaturan
+                </a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-[#0071e3] text-white rounded-full py-3 font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">add</span>
+                    Buat Syllabus Baru
+                </button>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 overflow-y-auto bg-background px-4 md:px-8 py-8">
+<div class="max-w-[900px] mx-auto space-y-8 pb-20">
+<!-- Header Card -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl">
+<div class="flex justify-between items-start gap-4">
+<div>
+<h1 class="font-headline font-bold text-3xl tracking-[-0.04em] text-on-surface mb-2">MK-203 Transportasi Publik</h1>
+<div class="flex items-center gap-3 text-on-surface-variant font-body text-sm mb-4">
+<span>2024/2025 Ganjil</span>
+<span class="w-1 h-1 bg-outline rounded-full"></span>
+<span>Dosen Pengembang: Dr. Aris Budi</span>
+</div>
+</div>
+<span class="bg-[#fef3c7] text-[#92400e] px-3 py-1 rounded-full font-label font-bold text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit_document</span>
+                            Draft
+                        </span>
+</div>
+</div>
+<!-- Workflow Bar -->
+<div class="bg-primary-container/10 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-2 text-primary-container font-medium text-sm">
+<span class="material-symbols-outlined">info</span>
+<span>Status: Draft — belum diajukan ke RMK</span>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2.5 rounded-full text-primary-container bg-transparent hover:bg-primary-container/10 transition-colors font-medium text-sm">
+                            Simpan Draft
+                        </button>
+<button class="flex-1 md:flex-none px-6 py-2.5 rounded-full bg-primary-container text-white hover:opacity-90 transition-opacity font-medium text-sm">
+                            Ajukan ke Koordinator RMK
+                        </button>
+</div>
+</div>
+<!-- Tab Navigation -->
+<div class="border-b border-surface-container-highest overflow-x-auto no-scrollbar">
+<div class="flex gap-6 min-w-max">
+<button class="pb-3 border-b-2 border-primary-container text-primary-container font-medium text-sm">Informasi Umum</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-medium text-sm transition-colors">CPL Prodi</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-medium text-sm transition-colors">CPMK &amp; Sub-CPMK</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-medium text-sm transition-colors">Rencana Pertemuan</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-medium text-sm transition-colors">Pustaka</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-medium text-sm transition-colors">Tugas Mandiri</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-medium text-sm transition-colors">Preview &amp; Export</button>
+</div>
+</div>
+<!-- Form Content -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Left Column -->
+<div class="space-y-6">
+<div>
+<label class="block font-label font-medium text-sm text-on-surface mb-2 uppercase tracking-wide">Deskripsi Singkat</label>
+<textarea class="w-full bg-surface-container-lowest border-none rounded-xl p-4 text-body text-sm text-on-surface focus:ring-2 focus:ring-primary-container resize-none h-32 placeholder:text-outline" placeholder="Masukkan deskripsi mata kuliah..."></textarea>
+</div>
+<div>
+<label class="block font-label font-medium text-sm text-on-surface mb-2 uppercase tracking-wide">Bahan Kajian</label>
+<textarea class="w-full bg-surface-container-lowest border-none rounded-xl p-4 text-body text-sm text-on-surface focus:ring-2 focus:ring-primary-container resize-none h-32 placeholder:text-outline" placeholder="Masukkan bahan kajian..."></textarea>
+</div>
+</div>
+<!-- Right Column -->
+<div class="space-y-6">
+<div>
+<label class="block font-label font-medium text-sm text-on-surface mb-2 uppercase tracking-wide">Tanggal Penyusunan</label>
+<input class="w-full bg-surface-container-lowest border-none rounded-xl p-3.5 text-body text-sm text-on-surface focus:ring-2 focus:ring-primary-container" type="date" value="2023-10-24"/>
+</div>
+<div>
+<label class="block font-label font-medium text-sm text-on-surface mb-2 uppercase tracking-wide">Dosen Pengampu</label>
+<div class="bg-surface-container-lowest p-4 rounded-xl flex flex-wrap gap-2">
+<span class="bg-surface-container-low px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium text-on-surface">
+<img alt="Dosen 1" class="w-5 h-5 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApxSbYEyF7ApOxZuubVgMMYyHvqJ_TvB-9wK50WAE9Z0nhfxn5GwjFmEOUaTZUG1sqgAOCOyGw9U_GZe7w87KUfsH5Ux2138BxpwS5RTFL2hbIPvkgtt-kD00m-f6hQGEaEe_J3BBd0Lu-jVF7ExjMrWWF0rRFgXPKeH08ybX9lIn-6rwNPx86VMhpJncBV4ARqavzgzuYuhkz5-qfLBT6_EPiBsx13gVvmVS1ImxVZ-7r1-L2aaBMqfG3IqugzW3sFe-KSdnZ6UjI"/>
+                                    Dr. Aris Budi
+                                    <button class="material-symbols-outlined text-[16px] text-outline hover:text-error transition-colors">close</button>
+</span>
+<button class="bg-surface-container-low px-3 py-1.5 rounded-full flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                                    Tambah
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Approval Log -->
+<div class="bg-surface-container-lowest p-6 md:p-8 rounded-2xl mt-8">
+<h3 class="font-headline font-bold text-lg mb-6">Riwayat Persetujuan</h3>
+<div class="relative pl-6 space-y-8">
+<div class="absolute left-[11px] top-2 bottom-2 w-[2px] bg-surface-container-high"></div>
+<div class="relative">
+<div class="absolute -left-[30px] top-1 w-[14px] h-[14px] rounded-full bg-primary-container ring-4 ring-surface-container-lowest"></div>
+<p class="font-medium text-sm text-on-surface">Draft Dibuat</p>
+<p class="text-xs text-on-surface-variant mt-1">Oleh Dr. Aris Budi • 24 Okt 2023, 10:00 WIB</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
