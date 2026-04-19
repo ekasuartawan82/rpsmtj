@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/db/prisma';
 import { requireAuth } from '@/lib/auth/session';
 
 export async function GET(req: Request) {

@@ -318,11 +318,18 @@ export async function acknowledgeWarning(
   }
 
   if (!warning.acknowledged) {
+    const actor = await prisma.user.findUnique({
+      where: { id: actorUserId },
+      select: { role: true, nama: true },
+    });
+
     await prisma.rpsApprovalLog.create({
       data: {
         rpsId,
         versionNo: context.versionNo,
         actorUserId,
+        actorRole: actor?.role ?? "dosen",
+        actorName: actor?.nama ?? actorUserId,
         action: "acknowledge_warning",
         catatanReview: `Warning ${warningId} di-acknowledge: ${warning.message}`,
       },

@@ -8,7 +8,7 @@
  * Policy: approved_by_rmk is TRANSITIONAL ONLY - not a canonical state
  */
 
-import type { RpsWorkflowStatus } from '@/services/rps/governance';
+import type { WorkflowStatus } from '@/services/rps/governance';
 
 /**
  * Normalize legacy workflow status to canonical Fase 2 status
@@ -17,14 +17,14 @@ import type { RpsWorkflowStatus } from '@/services/rps/governance';
  * - approved_by_rmk → submitted_to_kaprodi (transitional alias)
  * - All other states → unchanged
  */
-export function normalizeWorkflowStatus(status: string): RpsWorkflowStatus {
+export function normalizeWorkflowStatus(status: string): WorkflowStatus {
   // Transitional compatibility: approved_by_rmk maps to submitted_to_kaprodi
   if (status === 'approved_by_rmk') {
-    return 'submitted_to_kaprodi' as RpsWorkflowStatus;
+    return 'submitted_to_kaprodi' as WorkflowStatus;
   }
 
   // All other states are canonical (including legacy enum values)
-  const canonicalStates: RpsWorkflowStatus[] = [
+  const canonicalStates: WorkflowStatus[] = [
     'draft',
     'submitted_to_rmk',
     'revision_requested_by_rmk',
@@ -33,8 +33,8 @@ export function normalizeWorkflowStatus(status: string): RpsWorkflowStatus {
     'approved'
   ];
 
-  if (canonicalStates.includes(status as RpsWorkflowStatus)) {
-    return status as RpsWorkflowStatus;
+  if (canonicalStates.includes(status as WorkflowStatus)) {
+    return status as WorkflowStatus;
   }
 
   // Fallback for unknown states (should not happen)
@@ -56,7 +56,7 @@ export function isLegacyTransitionalStatus(status: string): boolean {
 export function getWorkflowStatusLabel(status: string): string {
   const normalized = normalizeWorkflowStatus(status);
 
-  const labels: Record<RpsWorkflowStatus, string> = {
+  const labels: Record<WorkflowStatus, string> = {
     draft: 'Draft',
     submitted_to_rmk: 'Menunggu Review RMK',
     revision_requested_by_rmk: 'Revisi RMK',

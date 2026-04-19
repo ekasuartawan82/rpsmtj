@@ -32,6 +32,13 @@ export async function cloneForRevision(
   rpsId: string,
   options: CloneForRevisionOptions
 ) {
+  const actor = await prisma.user.findUnique({
+    where: { id: options.actorUserId },
+    select: { role: true, nama: true },
+  });
+  const actorRole = actor?.role ?? "dosen";
+  const actorName = actor?.nama ?? options.actorUserId;
+
   return prisma.$transaction(async (tx) => {
     const sourceRps = await tx.rps.findUnique({
       where: { id: rpsId },
@@ -407,6 +414,8 @@ export async function cloneForRevision(
           rpsId: clonedRps.id,
           versionNo: clonedRps.versionNo,
           actorUserId: options.actorUserId,
+          actorRole,
+          actorName,
           action: "clone_for_revision",
           catatanReview: null,
         },
@@ -414,6 +423,8 @@ export async function cloneForRevision(
           rpsId: sourceRps.id,
           versionNo: sourceRps.versionNo,
           actorUserId: options.actorUserId,
+          actorRole,
+          actorName,
           action: "supersede",
           catatanReview: null,
         },

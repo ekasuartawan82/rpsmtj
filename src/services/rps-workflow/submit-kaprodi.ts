@@ -33,6 +33,13 @@ export async function submitToKaprodi(rpsId: string, options: SubmitToKaprodiOpt
     throw new ValidationError("Hanya koordinator RMK yang dapat mengajukan RPS ini ke Kaprodi.");
   }
 
+  const actor = await prisma.user.findUnique({
+    where: { id: options.actorUserId },
+    select: { role: true, nama: true },
+  });
+  const actorRole = actor?.role ?? "koordinator_rmk";
+  const actorName = actor?.nama ?? options.actorUserId;
+
   // Use transaction to update status and create approval log
   await prisma.$transaction(async (tx) => {
     const updated = await tx.rps.updateMany({
@@ -57,6 +64,8 @@ export async function submitToKaprodi(rpsId: string, options: SubmitToKaprodiOpt
         rpsId,
         versionNo: rps.versionNo,
         actorUserId: options.actorUserId,
+        actorRole,
+        actorName,
         action: "submit_to_kaprodi",
         catatanReview: null,
       },
