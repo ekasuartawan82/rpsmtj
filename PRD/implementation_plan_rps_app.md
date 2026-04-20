@@ -480,6 +480,7 @@ Mitigasi:
 - audit logging terstruktur
 - rate limiting login
 - backup database
+  - baseline review implementasi: `docs/BACKUP_DR_REVIEW_RESPONSE_2026-04-20.md`
 - monitoring worker queue
 - error reporting
 - staging environment
