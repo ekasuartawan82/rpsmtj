@@ -1,0 +1,7 @@
+{
+  "http_200_count": 1,
+  "http_403_count": 9,
+  "http_500_count": 0,
+  "delta_lock_version": 1,
+  "delta_audit_log": 1
+}

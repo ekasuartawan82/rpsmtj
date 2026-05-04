@@ -1,0 +1,28 @@
+{
+  "checks": {
+    "t1_same_prodi": {
+      "status": "PASS",
+      "expected": "HTTP 200 - Same prodi access allowed",
+      "observed": "HTTP 200 - Access granted for MTJ user to MTJ RPS",
+      "screenshot": "evidence/t1_same_prodi.png"
+    },
+    "t2_cross_prodi": {
+      "status": "PASS",
+      "expected": "HTTP 403 - Cross prodi access denied",
+      "observed": "HTTP 403 - Access denied for MTJ user to TO RPS",
+      "screenshot": "evidence/t2_cross_prodi_denied.png"
+    },
+    "t3_admin": {
+      "status": "PASS",
+      "expected": "HTTP 200 - Admin access to all prodi",
+      "observed": "HTTP 200 - Admin can access MTJ, TO, MLOG RPS",
+      "screenshot": "evidence/t3_admin_all_prodi.png"
+    }
+  },
+  "integrity_checks": {
+    "http_500_count": 0,
+    "unexpected_errors": 0,
+    "data_corruption_detected": false
+  },
+  "notes": "All scenarios verified. Governance behavior matches baseline."
+}
