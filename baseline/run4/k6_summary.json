@@ -1,0 +1,11 @@
+{
+  "http_200_count": 1,
+  "http_403_count": 9,
+  "http_500_count": 0,
+  "delta_lock_version": 1,
+  "delta_audit_log": 1,
+  "concurrent_users": 10,
+  "test_scenario": "submit_concurrency",
+  "baseline_run": "run4",
+  "note": "Reference format. Populate from transform_k6_output.sh after each K6 run."
+}
