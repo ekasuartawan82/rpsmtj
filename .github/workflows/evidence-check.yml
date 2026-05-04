@@ -1,0 +1,188 @@
+name: Evidence Consistency Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  evidence-check:
+    name: Validate Evidence Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Gate 1 — Required files present
+        run: |
+          echo "🔍 Checking required evidence files..."
+          MISSING=0
+
+          for f in \
+            evidence/manual_check.json \
+            evidence/k6_summary.json \
+            evidence/t1_same_prodi.png \
+            evidence/t2_cross_prodi_denied.png \
+            evidence/t3_admin_all_prodi.png; do
+            if [ ! -f "$f" ]; then
+              echo "❌ MISSING: $f"
+              MISSING=$((MISSING + 1))
+            else
+              echo "✅ Found: $f"
+            fi
+          done
+
+          if [ "$MISSING" -gt 0 ]; then
+            echo "❌ $MISSING required file(s) missing — PR rejected"
+            exit 1
+          fi
+
+          echo "✅ Gate 1 passed: all required files present"
+
+      - name: Gate 2 — manual_check.json schema valid
+        run: |
+          echo "🔍 Validating manual_check.json structure..."
+
+          T1=$(jq -r '.checks.t1_same_prodi.status' evidence/manual_check.json 2>/dev/null)
+          T2=$(jq -r '.checks.t2_cross_prodi.status' evidence/manual_check.json 2>/dev/null)
+          T3=$(jq -r '.checks.t3_admin.status' evidence/manual_check.json 2>/dev/null)
+
+          FAIL=0
+          for KEY in T1 T2 T3; do
+            VAL="${!KEY}"
+            if [ "$VAL" != "PASS" ] && [ "$VAL" != "FAIL" ]; then
+              echo "❌ Invalid or missing status for $KEY: '$VAL'"
+              FAIL=1
+            else
+              echo "✅ $KEY status: $VAL"
+            fi
+          done
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo "❌ Gate 2 failed: manual_check.json malformed"
+            exit 1
+          fi
+
+          echo "✅ Gate 2 passed: manual_check.json valid"
+
+      - name: Gate 3 — K6 HTTP pattern matches baseline
+        run: |
+          echo "🔍 Validating K6 HTTP pattern..."
+
+          HTTP_200=$(jq -r '.http_200_count // 0' evidence/k6_summary.json)
+          HTTP_403=$(jq -r '.http_403_count // 0' evidence/k6_summary.json)
+          HTTP_500=$(jq -r '.http_500_count // 0' evidence/k6_summary.json)
+          DELTA_LOCK=$(jq -r '.delta_lock_version // 0' evidence/k6_summary.json)
+          DELTA_AUDIT=$(jq -r '.delta_audit_log // 0' evidence/k6_summary.json)
+
+          echo "  HTTP 200: $HTTP_200 (expected: 1)"
+          echo "  HTTP 403: $HTTP_403 (expected: 9)"
+          echo "  HTTP 500: $HTTP_500 (expected: 0)"
+          echo "  Δlock_version: $DELTA_LOCK (expected: 1)"
+          echo "  Δaudit_log: $DELTA_AUDIT (expected: 1)"
+
+          FAIL=0
+          [ "$HTTP_200" != "1" ] && echo "❌ HTTP 200 count mismatch" && FAIL=1
+          [ "$HTTP_403" != "9" ] && echo "❌ HTTP 403 count mismatch" && FAIL=1
+          [ "$HTTP_500" != "0" ] && echo "❌ HTTP 500 detected — governance failure" && FAIL=1
+          [ "$DELTA_LOCK" != "1" ] && echo "❌ lock_version delta mismatch" && FAIL=1
+          [ "$DELTA_AUDIT" != "1" ] && echo "❌ audit_log delta mismatch" && FAIL=1
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo "❌ Gate 3 failed: K6 pattern does not match baseline"
+            exit 1
+          fi
+
+          echo "✅ Gate 3 passed: K6 pattern matches 1×200, 9×403, Δlock=+1, Δaudit=+1"
+
+      - name: Gate 4 — Cross-check consistency (automated sanity check)
+        run: |
+          echo "🔍 Cross-checking manual_check.json vs k6_summary.json..."
+
+          T1=$(jq -r '.checks.t1_same_prodi.status' evidence/manual_check.json)
+          T2=$(jq -r '.checks.t2_cross_prodi.status' evidence/manual_check.json)
+          T3=$(jq -r '.checks.t3_admin.status' evidence/manual_check.json)
+          HTTP_500=$(jq -r '.http_500_count // 0' evidence/k6_summary.json)
+          HTTP_200=$(jq -r '.http_200_count // 0' evidence/k6_summary.json)
+
+          FAIL=0
+
+          # Inconsistency: manual says PASS but K6 shows 500
+          if [ "$T1" = "PASS" ] && [ "$HTTP_500" -gt 0 ]; then
+            echo "❌ INCONSISTENCY: manual_check.json T1=PASS but k6_summary shows $HTTP_500 HTTP 500 errors"
+            FAIL=1
+          fi
+
+          # Inconsistency: T2 should be PASS (cross-prodi denied = test passes)
+          if [ "$T2" != "PASS" ]; then
+            echo "❌ INCONSISTENCY: T2 (cross-prodi denied) must be PASS — got: $T2"
+            FAIL=1
+          fi
+
+          # Inconsistency: HTTP 200 > 1 means concurrent access succeeded (governance failure)
+          if [ "$HTTP_200" -gt 1 ] && [ "$T1" = "PASS" ]; then
+            echo "❌ INCONSISTENCY: T1=PASS but HTTP 200 count=$HTTP_200 (should be exactly 1)"
+            FAIL=1
+          fi
+
+          # Screenshot files referenced in manual_check.json must exist
+          T1_SS=$(jq -r '.checks.t1_same_prodi.screenshot // ""' evidence/manual_check.json)
+          T2_SS=$(jq -r '.checks.t2_cross_prodi.screenshot // ""' evidence/manual_check.json)
+          T3_SS=$(jq -r '.checks.t3_admin.screenshot // ""' evidence/manual_check.json)
+
+          for SS in "$T1_SS" "$T2_SS" "$T3_SS"; do
+            if [ -n "$SS" ] && [ ! -f "evidence/$(basename "$SS")" ]; then
+              echo "❌ INCONSISTENCY: manual_check.json references '$SS' but file not found"
+              FAIL=1
+            fi
+          done
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo "❌ Gate 4 failed: evidence is internally inconsistent — PR rejected"
+            exit 1
+          fi
+
+          echo "✅ Gate 4 passed: evidence consistent across all files"
+
+      - name: Gate 5 — Protected files not touched
+        run: |
+          echo "🔍 Checking freeze area violations..."
+
+          PROTECTED_PATTERNS=(
+            "governance/"
+            "RPS_Governance_Service.php"
+            "services/locking/"
+            "db/transaction/"
+            "audit/"
+          )
+
+          CHANGED=$(git diff --name-only origin/main...HEAD)
+          FAIL=0
+
+          for PATTERN in "${PROTECTED_PATTERNS[@]}"; do
+            MATCHES=$(echo "$CHANGED" | grep -c "$PATTERN" || true)
+            if [ "$MATCHES" -gt 0 ]; then
+              echo "❌ FREEZE VIOLATION: $PATTERN was modified"
+              echo "$CHANGED" | grep "$PATTERN"
+              FAIL=1
+            fi
+          done
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo "❌ Gate 5 failed: protected governance files modified"
+            exit 1
+          fi
+
+          echo "✅ Gate 5 passed: no freeze area violations"
+
+      - name: Update PR stability metrics
+        if: always()
+        run: |
+          PR_STATUS="${{ job.status }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          echo "PR #$PR_NUMBER: $PR_STATUS at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
