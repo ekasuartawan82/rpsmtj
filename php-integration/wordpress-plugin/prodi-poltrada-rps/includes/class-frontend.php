@@ -27,6 +27,9 @@ class Prodi_RPS_Frontend {
 
         // Copy-as-draft (Slice 5) — outside governance freeze zone
         add_action('wp_ajax_prodi_rps_copy_as_draft', [$this, 'ajax_copy_as_draft']);
+
+        // Version history (Slice 6) — read-only query, outside freeze zone
+        add_action('wp_ajax_prodi_rps_version_history', [$this, 'ajax_version_history']);
     }
 
     public function enqueue_assets(): void
@@ -743,6 +746,43 @@ class Prodi_RPS_Frontend {
         }
 
         return '<span class="' . esc_attr($class) . '">' . esc_html($this->db->status_label($status)) . '</span>';
+    }
+
+    /**
+     * AJAX: Get version history for the mata_kuliah lineage of an RPS.
+     * Action: wp_ajax_prodi_rps_version_history
+     * POST: nonce, rps_id
+     */
+    public function ajax_version_history(): void {
+        if ( ! check_ajax_referer( 'prodi_rps_ajax', 'nonce', false ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid nonce' ], 403 );
+            return;
+        }
+
+        $rps_id = intval( $_POST['rps_id'] ?? 0 );
+        if ( $rps_id <= 0 ) {
+            wp_send_json_error( [ 'message' => 'rps_id required' ], 400 );
+            return;
+        }
+
+        $actor_user_id = get_current_user_id();
+        if ( ! $actor_user_id ) {
+            wp_send_json_error( [ 'message' => 'Not authenticated' ], 401 );
+            return;
+        }
+
+        try {
+            $lineage   = Prodi_RPS_Version_History::get_lineage( $rps_id, $actor_user_id );
+            $formatted = Prodi_RPS_Version_History::format_for_api( $lineage, $rps_id );
+
+            wp_send_json_success( [
+                'rps_id'   => $rps_id,
+                'total'    => count( $formatted ),
+                'versions' => $formatted,
+            ] );
+        } catch ( InvalidArgumentException $e ) {
+            wp_send_json_error( [ 'message' => $e->getMessage() ], 403 );
+        }
     }
 
     /**
