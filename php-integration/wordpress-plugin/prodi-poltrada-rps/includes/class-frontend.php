@@ -133,18 +133,13 @@ class Prodi_RPS_Frontend {
     public function ajax_reject_kaprodi(): void { $this->handle_ajax_governance_action('reject_kaprodi'); }
 
     private function handle_ajax_governance_action(string $action_name): void {
-        // DEBUG: Log incoming POST data
-        error_log('AJAX DEBUG - Action: ' . $action_name);
-        error_log('AJAX DEBUG - POST: ' . print_r($_POST, true));
-        error_log('AJAX DEBUG - Raw input: ' . file_get_contents('php://input'));
-
         if (!is_user_logged_in()) {
             wp_send_json_error(['code' => 'unauthorized', 'message' => 'Silakan login terlebih dahulu.'], 401);
         }
 
-        // if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false)) {
-        //     wp_send_json_error(['code' => 'forbidden', 'message' => 'Permintaan tidak valid (nonce mismatch).'], 403);
-        // }
+        if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false)) {
+            wp_send_json_error(['code' => 'forbidden', 'message' => 'Permintaan tidak valid (nonce mismatch).'], 403);
+        }
 
         $actor = $this->db->current_actor();
         if (!$actor) {
@@ -154,8 +149,6 @@ class Prodi_RPS_Frontend {
         $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
         $lockVersion = isset($_POST['lock_version']) ? absint($_POST['lock_version']) : 0;
         $note = isset($_POST['note']) ? sanitize_textarea_field(wp_unslash($_POST['note'])) : null;
-
-        error_log("AJAX DEBUG - Parsed values: rpsId=$rpsId, lockVersion=$lockVersion");
 
         // FIXED: Allow lock_version=0 (valid initial state)
         if ($rpsId <= 0 || $lockVersion < 0) {
