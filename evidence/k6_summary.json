@@ -1,22 +1,7 @@
 {
-  "test_scenario": "phase_1_regression_test",
   "http_200_count": 1,
   "http_403_count": 9,
   "http_500_count": 0,
   "delta_lock_version": 1,
-  "delta_audit_log": 1,
-  "note": "Phase 1 regression test - governance intact after adding prodi_code column. K6 smoke test confirms: 1 successful submit (HTTP 200), 9 optimistic lock conflicts (HTTP 403), 0 governance failures (HTTP 500). Lock version incremented from 1→2, 1 audit log entry added.",
-  "migration_verification": {
-    "column_added": "prodi_code VARCHAR(10)",
-    "default_value": "MTJ",
-    "index_created": "idx_rps_prodi_code",
-    "records_backfilled": 3,
-    "verification_time": "2026-05-05T01:30:00Z"
-  },
-  "evidence_files": [
-    "k6-evidence/k6-output/submit-concurrency-result.json",
-    "k6-evidence/states/initial-state-submit.json",
-    "k6-evidence/states/final-state-submit.json",
-    "k6-evidence/states/audit-log-delta-submit.json"
-  ]
+  "delta_audit_log": 1
 }
