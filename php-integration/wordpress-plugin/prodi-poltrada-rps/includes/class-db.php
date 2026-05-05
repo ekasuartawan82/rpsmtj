@@ -437,6 +437,12 @@ class Prodi_RPS_DB {
             $params[] = absint($filters['mata_kuliah_id']);
         }
 
+        // Prodi filter (Slice 7) — applied at query layer, never in governance logic
+        if (!empty($filters['prodi_code'])) {
+            $where[] = 'r.prodi_code = %s';
+            $params[] = strtoupper(sanitize_text_field((string) $filters['prodi_code']));
+        }
+
         if ($actor['role'] === self::ROLE_DOSEN) {
             $where[] = '(r.dosen_pengembang_user_id = %d OR EXISTS (
                 SELECT 1 FROM ' . $pengampuTable . ' rp
