@@ -1,0 +1,2 @@
+Field	Type	Null	Key	Default	Extra
+prodi_code	varchar(10)	YES	MUL	MTJ	

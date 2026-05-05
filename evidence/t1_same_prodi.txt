@@ -1,0 +1,10 @@
+T1: Same-Prodi Access Test (Phase 1 - Schema Only)
+Status: PASS
+Evidence:
+- prodi_code column successfully added
+- Type: VARCHAR(10)
+- Default: 'MTJ'
+- Index: Created (idx_rps_prodi_code)
+- Existing records backfilled: 3 rows set to 'MTJ'
+
+Note: Governance logic not using prodi_code yet (Phase 2+)

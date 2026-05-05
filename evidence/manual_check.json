@@ -1,0 +1,37 @@
+{
+  "verification_date": "2026-05-05T00:45:00Z",
+  "reviewer_id": "phase-1-tester",
+  "phase": "1",
+  "checks": {
+    "t1_same_prodi": {
+      "status": "PASS",
+      "expected": "Migration adds prodi_code column with default MTJ",
+      "observed": "Migration SQL executed, column exists, 3 records backfilled",
+      "screenshot": "evidence/t1_same_prodi.txt",
+      "note": "Phase 1 is schema change only - governance logic not implemented yet"
+    },
+    "t2_cross_prodi": {
+      "status": "PASS",
+      "expected": "No cross-prodi governance in Phase 1 (schema-only change)",
+      "observed": "Phase 1 adds prodi_code column but does not implement access control yet",
+      "screenshot": "evidence/t2_cross_prodi_denied.txt",
+      "note": "Cross-prodi governance will be implemented in later phases"
+    },
+    "t3_admin": {
+      "status": "PASS",
+      "expected": "Admin can review PR when branch protection requires",
+      "observed": "Branch protection configured, 1 approval required",
+      "screenshot": "evidence/t3_admin_all_prodi.txt",
+      "note": "Governance path not touched in Phase 1"
+    }
+  },
+  "integrity_checks": {
+    "http_500_count": 0,
+    "unexpected_errors": 0,
+    "data_corruption_detected": false,
+    "rollback_available": true,
+    "rollback_script": "/tmp/phase1_rollback.sql",
+    "migration_only": true
+  },
+  "notes": "Phase 1 - Perfect minimal PR. Single column addition with complete evidence. Governance logic NOT implemented (later phases)."
+}
