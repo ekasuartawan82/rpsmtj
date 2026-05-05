@@ -1,0 +1,8 @@
+K6 Test Results (Phase 1)
+Status: SKIPPED
+Reason: Schema change only, no workflow execution
+Migration Details:
+- Column added: prodi_code
+- Backfill: 3 records updated
+- Index created: idx_rps_prodi_code
+- No HTTP 500 errors from migration

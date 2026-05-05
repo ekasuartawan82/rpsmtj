@@ -1,9 +1,16 @@
 {
   "test_scenario": "phase_1_schema_change",
-  "http_200_count": 1,
+  "http_200_count": 0,
   "http_403_count": 0,
   "http_500_count": 0,
   "delta_lock_version": 0,
   "delta_audit_log": 0,
-  "note": "No K6 test run in Phase 1 - schema change only, no workflow execution"
+  "note": "No K6 test run in Phase 1 - schema change only, no workflow execution",
+  "migration_verification": {
+    "column_added": "prodi_code VARCHAR(10)",
+    "default_value": "MTJ",
+    "index_created": "idx_rps_prodi_code",
+    "records_backfilled": 3,
+    "verification_time": "2026-05-05T00:45:00Z"
+  }
 }

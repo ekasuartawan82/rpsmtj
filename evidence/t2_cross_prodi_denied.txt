@@ -1,0 +1,9 @@
+T2: Cross-Prodi Governance (Phase 1 - Schema Only)
+Status: NOT APPLICABLE
+Expected: Cross-prodi governance NOT implemented in Phase 1
+Observed:
+- prodi_code column exists
+- No access control changes in Phase 1
+- Governance logic will be implemented in later phases
+
+Note: Phase 1 is schema change only
