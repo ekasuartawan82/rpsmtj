@@ -30,6 +30,9 @@ class Prodi_RPS_Frontend {
 
         // Version history (Slice 6) — read-only query, outside freeze zone
         add_action('wp_ajax_prodi_rps_version_history', [$this, 'ajax_version_history']);
+
+        // Dashboard filter (Slice 7) — prodi-scoped RPS list query
+        add_action('wp_ajax_prodi_rps_dashboard_list', [$this, 'ajax_dashboard_list']);
     }
 
     public function enqueue_assets(): void
@@ -746,6 +749,48 @@ class Prodi_RPS_Frontend {
         }
 
         return '<span class="' . esc_attr($class) . '">' . esc_html($this->db->status_label($status)) . '</span>';
+    }
+
+    /**
+     * AJAX: Get prodi-filtered RPS list for the dashboard.
+     * Action: wp_ajax_prodi_rps_dashboard_list
+     * POST: nonce, prodi_code (optional, admin only), status (optional)
+     */
+    public function ajax_dashboard_list(): void {
+        if ( ! check_ajax_referer( 'prodi_rps_ajax', 'nonce', false ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid nonce' ], 403 );
+            return;
+        }
+
+        $actor_user_id   = get_current_user_id();
+        if ( ! $actor_user_id ) {
+            wp_send_json_error( [ 'message' => 'Not authenticated' ], 401 );
+            return;
+        }
+
+        $requested_prodi = isset( $_POST['prodi_code'] )
+            ? sanitize_text_field( $_POST['prodi_code'] )
+            : null;
+
+        $prodi_filter = Prodi_Dashboard_Filter::resolve_prodi_filter( $actor_user_id, $requested_prodi );
+        $actor        = Prodi_Dashboard_Filter::get_actor( $actor_user_id );
+
+        $filters = [];
+        if ( $prodi_filter ) {
+            $filters['prodi_code'] = $prodi_filter;
+        }
+        if ( ! empty( $_POST['status'] ) ) {
+            $filters['status'] = sanitize_key( $_POST['status'] );
+        }
+
+        $rps_list = $this->db->get_rps_list( $filters, $actor );
+
+        wp_send_json_success( [
+            'actor_prodi'   => $prodi_filter,
+            'prodi_options' => Prodi_Dashboard_Filter::get_prodi_options( $actor_user_id ),
+            'total'         => count( $rps_list ),
+            'items'         => $rps_list,
+        ] );
     }
 
     /**

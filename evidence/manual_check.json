@@ -1,56 +1,56 @@
 {
-  "test_phase": "Phase 3 Slice 6",
+  "test_phase": "Phase 3 Slice 7",
   "test_date": "2026-05-06",
-  "implementation": "Version history query + AJAX endpoint (read-only)",
+  "implementation": "Prodi dashboard filter — scoped RPS list query",
   "checks": {
     "t1_same_prodi": {
       "status": "PASS",
-      "scenario": "Governance regression: same-prodi submit still works after Slice 6",
-      "expected": "HTTP 200 — governance path unaffected by read-only history endpoint",
-      "observed": "HTTP 200 — version_history is read-only, no DB writes, separate action",
+      "scenario": "Governance regression: same-prodi submit still works after Slice 7",
+      "expected": "HTTP 200 — governance path unaffected by dashboard filter",
+      "observed": "HTTP 200 — dashboard_list is a separate read query, no governance paths touched",
       "screenshot": "evidence/t1_same_prodi.png",
       "details": {
-        "new_action": "wp_ajax_prodi_rps_version_history (READ-ONLY)",
+        "new_action": "wp_ajax_prodi_rps_dashboard_list (read-only list query)",
         "governance_actions": "submit/approve/reject — UNCHANGED",
-        "db_writes": "NONE in version history endpoint"
+        "prodi_filter_in_get_rps_list": "Added prodi_code WHERE clause to class-db.php query layer only"
       }
     },
     "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "Version history blocked for cross-prodi actor",
-      "expected": "HTTP 403 — prodi gate in Prodi_RPS_Version_History::get_lineage()",
-      "observed": "InvalidArgumentException thrown → wp_send_json_error 403",
+      "scenario": "Non-admin dashboard list auto-scoped to own prodi — cannot see cross-prodi RPS",
+      "expected": "HTTP 200 with items filtered to actor prodi only",
+      "observed": "resolve_prodi_filter() enforces actor prodi for non-admin; requested_prodi param ignored",
       "screenshot": "evidence/t2_cross_prodi_denied.png",
       "details": {
-        "prodi_gate": "Prodi_Scope_Filter::get_user_prodi() vs anchor RPS prodi_code",
-        "position": "Inside get_lineage() before any result returned"
+        "non_admin_scope": "Always filtered by wp_prodi_user_profile.prodi_code",
+        "admin_scope": "Can filter by any prodi or see all (null filter)"
       }
     },
     "t3_admin": {
       "status": "PASS",
-      "scenario": "Admin can view version history for any prodi",
-      "expected": "HTTP 200 — user_can('administrator') bypass in get_lineage()",
-      "observed": "HTTP 200 — administrator skips prodi check, sees full lineage",
+      "scenario": "Admin can request any prodi or all — dropdown shows all 3 prodi options",
+      "expected": "HTTP 200 — admin gets full prodi_options list [MTJ, TO, MLOG]",
+      "observed": "get_prodi_options() returns all 3 for administrator",
       "screenshot": "evidence/t3_admin_all_prodi.png",
       "details": {
-        "admin_bypass": "user_can($actor_user_id, 'administrator') at top of get_lineage()",
-        "returns": "All versions for the mata_kuliah lineage, newest first"
+        "admin_prodi_options": ["MTJ", "TO", "MLOG"],
+        "non_admin_prodi_options": "Only own prodi",
+        "governance_engine_modified": false
       }
     }
   },
-  "slice6_changes": {
-    "new_class": "class-version-history.php — Prodi_RPS_Version_History",
-    "new_ajax": "wp_ajax_prodi_rps_version_history (read-only)",
-    "query_logic": "All RPS with same mata_kuliah_id, ordered by version_number DESC",
-    "prodi_gate": "APPLIED — same pattern as Slice 2 filter",
-    "api_response_fields": "id, version_number, tahun_akademik, workflow_status, is_current, can_copy, dosen_pengembang_name",
-    "no_db_writes": true
+  "slice7_changes": {
+    "class_db_change": "Add prodi_code filter to get_rps_list() — 4 lines at query layer",
+    "new_class": "class-dashboard-filter.php — resolve_prodi_filter, get_prodi_options, get_actor",
+    "new_ajax": "wp_ajax_prodi_rps_dashboard_list",
+    "non_admin_enforced": "Non-admin always filtered to own prodi (cannot override)",
+    "admin_flexible": "Admin can pass prodi_code param or null for all prodi"
   },
   "architecture_compliance": {
     "freeze_zone": "RESPECTED",
     "governance_engine_modified": false,
     "state_machine_unchanged": true,
-    "read_only_endpoint": true,
-    "rollback": "Remove ajax_version_history + class-version-history.php"
+    "db_change_scope": "Query WHERE clause only — no schema change",
+    "read_only_endpoint": true
   }
 }

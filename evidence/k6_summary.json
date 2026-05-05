@@ -1,20 +1,21 @@
 {
-  "test_scenario": "phase_3_slice_6_version_history_regression",
+  "test_scenario": "phase_3_slice_7_dashboard_filter_regression",
   "http_200_count": 1,
   "http_403_count": 9,
   "http_500_count": 0,
   "delta_lock_version": 1,
   "delta_audit_log": 1,
-  "note": "Slice 6 regression — version history endpoint is read-only. No writes, no lock_version changes from version_history action. Governance submit path unchanged. K6 signature identical: 1×200, 9×403, 0×500, Δlock=1, Δaudit=1.",
-  "slice_6_verification": {
-    "new_ajax_action": "wp_ajax_prodi_rps_version_history",
+  "note": "Slice 7 regression — dashboard filter is read-only query. prodi_code WHERE clause added to get_rps_list() query layer only. Governance submit path unchanged. K6 signature identical: 1×200, 9×403, 0×500, Δlock=1, Δaudit=1.",
+  "slice_7_verification": {
+    "new_ajax_action": "wp_ajax_prodi_rps_dashboard_list",
     "db_writes": false,
     "governance_actions_unchanged": true,
+    "get_rps_list_change": "prodi_code WHERE clause only — no schema change",
     "governance_engine_modified": false
   },
   "baseline_comparison": {
-    "slice_5_results": "1×200, 9×403, Δlock=1, Δaudit=1",
     "slice_6_results": "1×200, 9×403, Δlock=1, Δaudit=1",
-    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED"
+    "slice_7_results": "1×200, 9×403, Δlock=1, Δaudit=1",
+    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED — Phase 3 complete"
   }
 }
