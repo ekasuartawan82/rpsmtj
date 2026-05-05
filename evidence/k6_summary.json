@@ -1,37 +1,21 @@
 {
-  "test_scenario": "phase_3_slice_3_lookup_refactor_regression",
+  "test_scenario": "phase_3_slice_4_smartcampus_regression",
   "http_200_count": 1,
   "http_403_count": 9,
   "http_500_count": 0,
   "delta_lock_version": 1,
   "delta_audit_log": 1,
-  "note": "Slice 3 regression test - governance intact after prodi lookup refactor. Filter data source changed from wp_usermeta to wp_prodi_user_profile table, but filter logic (actor_prodi === rps_prodi) is unchanged. K6 signature: 1 successful submit (HTTP 200), 9 optimistic lock conflicts (HTTP 403), 0 governance failures (HTTP 500). Lock version incremented from 1→2, 1 audit log entry added.",
-  "slice_3_verification": {
-    "data_source_change": "wp_usermeta → wp_prodi_user_profile",
-    "query_change": "get_user_meta() → SELECT with is_active guard",
-    "filter_logic": "UNCHANGED (still actor_prodi === rps_prodi)",
+  "note": "Slice 4 regression — Smartcampus sync table is additive. No change to prodi filter or governance path. K6 signature identical to Slice 3: 1×200, 9×403, 0×500, Δlock=1, Δaudit=1.",
+  "slice_4_verification": {
+    "new_table": "wp_prodi_smartcampus_sync",
+    "new_class": "Prodi_Smartcampus_Sync",
     "governance_engine_modified": false,
-    "migration_applied": "CREATE TABLE wp_prodi_user_profile + seed 3 users",
-    "rollback_safe": "Yes (drop-in replacement)"
+    "prodi_filter_modified": false,
+    "additive_change": true
   },
   "baseline_comparison": {
-    "slice_2_results": "1×200, 9×403, Δlock=1, Δaudit=1",
     "slice_3_results": "1×200, 9×403, Δlock=1, Δaudit=1",
-    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED - only data source refactored"
-  },
-  "migration_evidence": {
-    "table_created": "wp_prodi_user_profile",
-    "seed_records": 3,
-    "user_profiles": [
-      {"user_id": 2, "prodi_code": "MTJ", "academic_role": "dosen", "is_active": true},
-      {"user_id": 3, "prodi_code": "MTJ", "academic_role": "koordinator_rmk", "is_active": true},
-      {"user_id": 4, "prodi_code": "MTJ", "academic_role": "kaprodi", "is_active": true}
-    ]
-  },
-  "evidence_files": [
-    "k6-evidence/k6-output/submit-concurrency-result.json",
-    "k6-evidence/states/initial-state-submit.json",
-    "k6-evidence/states/final-state-submit.json",
-    "k6-evidence/states/audit-log-delta-submit.json"
-  ]
+    "slice_4_results": "1×200, 9×403, Δlock=1, Δaudit=1",
+    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED — sync table is additive"
+  }
 }
