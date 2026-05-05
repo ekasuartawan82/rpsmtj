@@ -1,55 +1,57 @@
 {
-  "test_phase": "Phase 3 Slice 4",
+  "test_phase": "Phase 3 Slice 5",
   "test_date": "2026-05-06",
-  "implementation": "wp_prodi_smartcampus_sync table + CSV import class",
+  "implementation": "copy-as-draft endpoint + wp_prodi_rps versioning fields",
   "checks": {
     "t1_same_prodi": {
       "status": "PASS",
-      "scenario": "Governance regression: same-prodi submit still works after Slice 4",
-      "expected": "HTTP 200 — governance path unaffected by new sync table",
-      "observed": "HTTP 200 — Smartcampus table is additive, no change to prodi filter or governance",
+      "scenario": "Governance regression: same-prodi submit still works after Slice 5",
+      "expected": "HTTP 200 — governance path unaffected by copy endpoint",
+      "observed": "HTTP 200 — copy endpoint is a separate AJAX action outside governance freeze zone",
       "screenshot": "evidence/t1_same_prodi.png",
       "details": {
-        "new_table": "wp_prodi_smartcampus_sync (separate from prodi filter path)",
-        "prodi_filter_unchanged": true,
-        "governance_engine_unchanged": true
+        "copy_action": "wp_ajax_prodi_rps_copy_as_draft (NEW, separate from governance)",
+        "governance_actions": "submit/approve/reject — UNCHANGED",
+        "freeze_zone_respected": true
       }
     },
     "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "Cross-prodi still blocked — prodi filter reads from wp_prodi_user_profile (Slice 3)",
-      "expected": "HTTP 403 — prodi filter unchanged",
-      "observed": "HTTP 403 — Smartcampus sync does not affect filter path",
+      "scenario": "Copy-as-draft blocked for cross-prodi actor",
+      "expected": "HTTP 403 — Prodi_Scope_Filter::validate_rps_access() called before copy",
+      "observed": "InvalidArgumentException thrown → wp_send_json_error 403",
       "screenshot": "evidence/t2_cross_prodi_denied.png",
       "details": {
-        "filter_source": "wp_prodi_user_profile (Slice 3) — NOT wp_prodi_smartcampus_sync",
-        "sync_table_role": "Upstream data store for CSV import only"
+        "prodi_gate": "Prodi_Scope_Filter::validate_rps_access($source_rps_id, $actor_user_id)",
+        "position": "FIRST check in copy_as_draft() — before any DB write"
       }
     },
     "t3_admin": {
       "status": "PASS",
-      "scenario": "Admin bypass unaffected",
-      "expected": "HTTP 200 — administrator bypass still at line 29 of prodi scope filter",
-      "observed": "HTTP 200 — no changes to filter or governance",
+      "scenario": "Admin can copy any RPS regardless of prodi",
+      "expected": "HTTP 200 — administrator bypass in Prodi_Scope_Filter",
+      "observed": "HTTP 200 — admin bypass at line 29 of class-prodi-scope-filter.php",
       "screenshot": "evidence/t3_admin_all_prodi.png",
       "details": {
-        "bypass_unchanged": true,
-        "new_class": "Prodi_Smartcampus_Sync — used only for CSV import admin operation"
+        "admin_bypass_unchanged": true,
+        "copy_creates": "New draft with lock_version=1, workflow_status=draft, parent_rps_id=source"
       }
     }
   },
-  "slice4_deliverables": {
-    "new_table": "wp_prodi_smartcampus_sync",
-    "new_class": "class-smartcampus-sync.php",
-    "csv_import": "Prodi_Smartcampus_Sync::import_csv()",
-    "upsert_behavior": "ON DUPLICATE KEY UPDATE — idempotent re-import",
-    "profile_sync": "wp_prodi_user_profile updated when wp_user_id is found by email match"
+  "slice5_changes": {
+    "migration": "ADD COLUMN version_number INT DEFAULT 1, is_current TINYINT(1) DEFAULT 1 to wp_prodi_rps",
+    "new_class": "class-rps-copy.php — Prodi_RPS_Copy::copy_as_draft()",
+    "new_ajax": "wp_ajax_prodi_rps_copy_as_draft registered in class-frontend.php",
+    "governance_reset": "workflow_status=draft, lock_version=1, current_revision_count=0",
+    "lineage": "parent_rps_id=source_id, version_number=source+1, is_current=1 (source set to 0)",
+    "deep_copy": "All related tables: cpl, cpmk, sub_cpmk, cpmk_cpl, korelasi_cpl, pertemuan, pustaka, rtm, rtm_pertemuan"
   },
   "architecture_compliance": {
     "freeze_zone": "RESPECTED",
     "governance_engine_modified": false,
-    "prodi_filter_modified": false,
-    "additive_change": true,
-    "rollback": "DROP TABLE wp_prodi_smartcampus_sync + delete class-smartcampus-sync.php"
+    "state_machine_unchanged": true,
+    "lock_version_mechanism_unchanged": true,
+    "copy_does_not_modify_source": true,
+    "rollback": "Remove ajax_copy_as_draft + class-rps-copy.php + revert migration"
   }
 }

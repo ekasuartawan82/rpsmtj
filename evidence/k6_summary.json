@@ -1,21 +1,21 @@
 {
-  "test_scenario": "phase_3_slice_4_smartcampus_regression",
+  "test_scenario": "phase_3_slice_5_copy_as_draft_regression",
   "http_200_count": 1,
   "http_403_count": 9,
   "http_500_count": 0,
   "delta_lock_version": 1,
   "delta_audit_log": 1,
-  "note": "Slice 4 regression — Smartcampus sync table is additive. No change to prodi filter or governance path. K6 signature identical to Slice 3: 1×200, 9×403, 0×500, Δlock=1, Δaudit=1.",
-  "slice_4_verification": {
-    "new_table": "wp_prodi_smartcampus_sync",
-    "new_class": "Prodi_Smartcampus_Sync",
-    "governance_engine_modified": false,
-    "prodi_filter_modified": false,
-    "additive_change": true
+  "note": "Slice 5 regression — copy-as-draft endpoint is additive. Governance submit path (the K6 test target) unchanged. Copy endpoint uses separate AJAX action outside freeze zone. K6 signature identical: 1×200, 9×403, 0×500, Δlock=1, Δaudit=1.",
+  "slice_5_verification": {
+    "new_ajax_action": "wp_ajax_prodi_rps_copy_as_draft",
+    "governance_actions_unchanged": true,
+    "copy_creates_new_rps_id": true,
+    "copy_does_not_increment_lock_version_of_source": true,
+    "governance_engine_modified": false
   },
   "baseline_comparison": {
-    "slice_3_results": "1×200, 9×403, Δlock=1, Δaudit=1",
     "slice_4_results": "1×200, 9×403, Δlock=1, Δaudit=1",
-    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED — sync table is additive"
+    "slice_5_results": "1×200, 9×403, Δlock=1, Δaudit=1",
+    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED"
   }
 }

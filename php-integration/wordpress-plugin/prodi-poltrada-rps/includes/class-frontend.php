@@ -24,6 +24,9 @@ class Prodi_RPS_Frontend {
         add_action('wp_ajax_prodi_rps_approve_kaprodi', [$this, 'ajax_approve_kaprodi']);
         add_action('wp_ajax_prodi_rps_reject_kaprodi', [$this, 'ajax_reject_kaprodi']);
         add_action('wp_ajax_prodi_rps_test_state', [$this, 'ajax_test_state']);
+
+        // Copy-as-draft (Slice 5) — outside governance freeze zone
+        add_action('wp_ajax_prodi_rps_copy_as_draft', [$this, 'ajax_copy_as_draft']);
     }
 
     public function enqueue_assets(): void
@@ -740,5 +743,42 @@ class Prodi_RPS_Frontend {
         }
 
         return '<span class="' . esc_attr($class) . '">' . esc_html($this->db->status_label($status)) . '</span>';
+    }
+
+    /**
+     * AJAX: Copy existing RPS as new draft.
+     * Action: wp_ajax_prodi_rps_copy_as_draft
+     * POST: nonce, source_rps_id
+     */
+    public function ajax_copy_as_draft(): void {
+        if ( ! check_ajax_referer( 'prodi_rps_ajax', 'nonce', false ) ) {
+            wp_send_json_error( [ 'message' => 'Invalid nonce' ], 403 );
+            return;
+        }
+
+        $source_rps_id = intval( $_POST['source_rps_id'] ?? 0 );
+        if ( $source_rps_id <= 0 ) {
+            wp_send_json_error( [ 'message' => 'source_rps_id required' ], 400 );
+            return;
+        }
+
+        $actor_user_id = get_current_user_id();
+        if ( ! $actor_user_id ) {
+            wp_send_json_error( [ 'message' => 'Not authenticated' ], 401 );
+            return;
+        }
+
+        try {
+            $new_rps_id = Prodi_RPS_Copy::copy_as_draft( $source_rps_id, $actor_user_id );
+            wp_send_json_success( [
+                'new_rps_id'    => $new_rps_id,
+                'source_rps_id' => $source_rps_id,
+                'message'       => "RPS #$source_rps_id copied as new draft #$new_rps_id",
+            ] );
+        } catch ( InvalidArgumentException $e ) {
+            wp_send_json_error( [ 'message' => $e->getMessage() ], 403 );
+        } catch ( RuntimeException $e ) {
+            wp_send_json_error( [ 'message' => $e->getMessage() ], 500 );
+        }
     }
 }
