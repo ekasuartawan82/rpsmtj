@@ -1,57 +1,56 @@
 {
-  "test_phase": "Phase 3 Slice 5",
+  "test_phase": "Phase 3 Slice 6",
   "test_date": "2026-05-06",
-  "implementation": "copy-as-draft endpoint + wp_prodi_rps versioning fields",
+  "implementation": "Version history query + AJAX endpoint (read-only)",
   "checks": {
     "t1_same_prodi": {
       "status": "PASS",
-      "scenario": "Governance regression: same-prodi submit still works after Slice 5",
-      "expected": "HTTP 200 — governance path unaffected by copy endpoint",
-      "observed": "HTTP 200 — copy endpoint is a separate AJAX action outside governance freeze zone",
+      "scenario": "Governance regression: same-prodi submit still works after Slice 6",
+      "expected": "HTTP 200 — governance path unaffected by read-only history endpoint",
+      "observed": "HTTP 200 — version_history is read-only, no DB writes, separate action",
       "screenshot": "evidence/t1_same_prodi.png",
       "details": {
-        "copy_action": "wp_ajax_prodi_rps_copy_as_draft (NEW, separate from governance)",
+        "new_action": "wp_ajax_prodi_rps_version_history (READ-ONLY)",
         "governance_actions": "submit/approve/reject — UNCHANGED",
-        "freeze_zone_respected": true
+        "db_writes": "NONE in version history endpoint"
       }
     },
     "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "Copy-as-draft blocked for cross-prodi actor",
-      "expected": "HTTP 403 — Prodi_Scope_Filter::validate_rps_access() called before copy",
+      "scenario": "Version history blocked for cross-prodi actor",
+      "expected": "HTTP 403 — prodi gate in Prodi_RPS_Version_History::get_lineage()",
       "observed": "InvalidArgumentException thrown → wp_send_json_error 403",
       "screenshot": "evidence/t2_cross_prodi_denied.png",
       "details": {
-        "prodi_gate": "Prodi_Scope_Filter::validate_rps_access($source_rps_id, $actor_user_id)",
-        "position": "FIRST check in copy_as_draft() — before any DB write"
+        "prodi_gate": "Prodi_Scope_Filter::get_user_prodi() vs anchor RPS prodi_code",
+        "position": "Inside get_lineage() before any result returned"
       }
     },
     "t3_admin": {
       "status": "PASS",
-      "scenario": "Admin can copy any RPS regardless of prodi",
-      "expected": "HTTP 200 — administrator bypass in Prodi_Scope_Filter",
-      "observed": "HTTP 200 — admin bypass at line 29 of class-prodi-scope-filter.php",
+      "scenario": "Admin can view version history for any prodi",
+      "expected": "HTTP 200 — user_can('administrator') bypass in get_lineage()",
+      "observed": "HTTP 200 — administrator skips prodi check, sees full lineage",
       "screenshot": "evidence/t3_admin_all_prodi.png",
       "details": {
-        "admin_bypass_unchanged": true,
-        "copy_creates": "New draft with lock_version=1, workflow_status=draft, parent_rps_id=source"
+        "admin_bypass": "user_can($actor_user_id, 'administrator') at top of get_lineage()",
+        "returns": "All versions for the mata_kuliah lineage, newest first"
       }
     }
   },
-  "slice5_changes": {
-    "migration": "ADD COLUMN version_number INT DEFAULT 1, is_current TINYINT(1) DEFAULT 1 to wp_prodi_rps",
-    "new_class": "class-rps-copy.php — Prodi_RPS_Copy::copy_as_draft()",
-    "new_ajax": "wp_ajax_prodi_rps_copy_as_draft registered in class-frontend.php",
-    "governance_reset": "workflow_status=draft, lock_version=1, current_revision_count=0",
-    "lineage": "parent_rps_id=source_id, version_number=source+1, is_current=1 (source set to 0)",
-    "deep_copy": "All related tables: cpl, cpmk, sub_cpmk, cpmk_cpl, korelasi_cpl, pertemuan, pustaka, rtm, rtm_pertemuan"
+  "slice6_changes": {
+    "new_class": "class-version-history.php — Prodi_RPS_Version_History",
+    "new_ajax": "wp_ajax_prodi_rps_version_history (read-only)",
+    "query_logic": "All RPS with same mata_kuliah_id, ordered by version_number DESC",
+    "prodi_gate": "APPLIED — same pattern as Slice 2 filter",
+    "api_response_fields": "id, version_number, tahun_akademik, workflow_status, is_current, can_copy, dosen_pengembang_name",
+    "no_db_writes": true
   },
   "architecture_compliance": {
     "freeze_zone": "RESPECTED",
     "governance_engine_modified": false,
     "state_machine_unchanged": true,
-    "lock_version_mechanism_unchanged": true,
-    "copy_does_not_modify_source": true,
-    "rollback": "Remove ajax_copy_as_draft + class-rps-copy.php + revert migration"
+    "read_only_endpoint": true,
+    "rollback": "Remove ajax_version_history + class-version-history.php"
   }
 }
