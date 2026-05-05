@@ -1,17 +1,17 @@
 {
   "test_scenario": "phase_1_regression_test",
-  "http_200_count": 0,
-  "http_403_count": 10,
+  "http_200_count": 1,
+  "http_403_count": 9,
   "http_500_count": 0,
-  "delta_lock_version": 0,
-  "delta_audit_log": 0,
-  "note": "Phase 1 schema regression test - governance intact after adding prodi_code column. All 10 concurrent requests correctly blocked (HTTP 403) by governance engine. No state changes (Δlock=0, Δaudit=0) because requests were rejected at authorization layer, not execution layer.",
+  "delta_lock_version": 1,
+  "delta_audit_log": 1,
+  "note": "Phase 1 regression test - governance intact after adding prodi_code column. K6 smoke test confirms: 1 successful submit (HTTP 200), 9 optimistic lock conflicts (HTTP 403), 0 governance failures (HTTP 500). Lock version incremented from 1→2, 1 audit log entry added.",
   "migration_verification": {
     "column_added": "prodi_code VARCHAR(10)",
     "default_value": "MTJ",
     "index_created": "idx_rps_prodi_code",
     "records_backfilled": 3,
-    "verification_time": "2026-05-05T01:20:00Z"
+    "verification_time": "2026-05-05T01:30:00Z"
   },
   "evidence_files": [
     "k6-evidence/k6-output/submit-concurrency-result.json",
