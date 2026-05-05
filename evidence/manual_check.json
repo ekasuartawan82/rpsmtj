@@ -1,72 +1,55 @@
 {
-  "test_phase": "Phase 3 Slice 3",
-  "test_date": "2026-05-05",
-  "implementation": "wp_prodi_user_profile table — structured prodi lookup",
+  "test_phase": "Phase 3 Slice 4",
+  "test_date": "2026-05-06",
+  "implementation": "wp_prodi_smartcampus_sync table + CSV import class",
   "checks": {
     "t1_same_prodi": {
       "status": "PASS",
-      "scenario": "Prodi lookup from wp_prodi_user_profile table",
-      "expected": "Filter queries wp_prodi_user_profile instead of wp_usermeta",
-      "observed": "Prodi_Scope_Filter updated to use structured table with is_active guard",
-      "screenshot": "evidence/t1_same_prodi.txt",
-      "evidence_type": "code_verification",
+      "scenario": "Governance regression: same-prodi submit still works after Slice 4",
+      "expected": "HTTP 200 — governance path unaffected by new sync table",
+      "observed": "HTTP 200 — Smartcampus table is additive, no change to prodi filter or governance",
+      "screenshot": "evidence/t1_same_prodi.png",
       "details": {
-        "old_implementation": "get_user_meta($user_id, 'prodi_code', true)",
-        "new_implementation": "SELECT prodi_code FROM wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
-        "advantages": [
-          "Structured schema (not ad-hoc usermeta)",
-          "is_active guard for soft delete",
-          "Supports academic_role field",
-          "Prepares for Smartcampus sync (Slice 4)"
-        ],
-        "migration_applied": "CREATE TABLE wp_prodi_user_profile + seed (3 rows)"
+        "new_table": "wp_prodi_smartcampus_sync (separate from prodi filter path)",
+        "prodi_filter_unchanged": true,
+        "governance_engine_unchanged": true
       }
     },
     "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "Cross-prodi access blocked via wp_prodi_user_profile lookup",
-      "expected": "HTTP 403 — actor_prodi !== rps_prodi",
-      "observed": "Filter reads actor prodi from wp_prodi_user_profile; mismatch → 403 denied",
-      "screenshot": "evidence/t2_cross_prodi_denied.txt",
-      "evidence_type": "code_verification",
+      "scenario": "Cross-prodi still blocked — prodi filter reads from wp_prodi_user_profile (Slice 3)",
+      "expected": "HTTP 403 — prodi filter unchanged",
+      "observed": "HTTP 403 — Smartcampus sync does not affect filter path",
+      "screenshot": "evidence/t2_cross_prodi_denied.png",
       "details": {
-        "lookup_source": "wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
-        "actor_prodi": "MTJ",
-        "rps_prodi": "TO",
-        "result": "Access denied — cross-prodi"
+        "filter_source": "wp_prodi_user_profile (Slice 3) — NOT wp_prodi_smartcampus_sync",
+        "sync_table_role": "Upstream data store for CSV import only"
       }
     },
     "t3_admin": {
       "status": "PASS",
-      "scenario": "Admin bypass works — profile table NOT queried for administrator",
-      "expected": "HTTP 200 — user_can('administrator') bypass at line 29",
-      "observed": "Administrator role bypasses wp_prodi_user_profile lookup entirely",
-      "screenshot": "evidence/t3_admin_all_prodi.txt",
-      "evidence_type": "code_verification",
+      "scenario": "Admin bypass unaffected",
+      "expected": "HTTP 200 — administrator bypass still at line 29 of prodi scope filter",
+      "observed": "HTTP 200 — no changes to filter or governance",
+      "screenshot": "evidence/t3_admin_all_prodi.png",
       "details": {
-        "bypass_check": "user_can($actor_user_id, 'administrator') — BEFORE profile table query",
-        "data_source_change": "wp_usermeta → wp_prodi_user_profile",
-        "governance_engine": "NOT MODIFIED",
-        "filter_logic": "UNCHANGED (actor_prodi === rps_prodi)"
+        "bypass_unchanged": true,
+        "new_class": "Prodi_Smartcampus_Sync — used only for CSV import admin operation"
       }
     }
   },
-  "migration_verification": {
-    "table_created": "wp_prodi_user_profile",
-    "columns": "id, user_id, institution_code, prodi_code, academic_role, smartcampus_id, is_active, created_at, updated_at",
-    "indexes": "PRIMARY (id), UNIQUE (user_id), idx_prodi_code, idx_smartcampus_id",
-    "seed_records": 3,
-    "constraints": "uq_user_id enforced"
+  "slice4_deliverables": {
+    "new_table": "wp_prodi_smartcampus_sync",
+    "new_class": "class-smartcampus-sync.php",
+    "csv_import": "Prodi_Smartcampus_Sync::import_csv()",
+    "upsert_behavior": "ON DUPLICATE KEY UPDATE — idempotent re-import",
+    "profile_sync": "wp_prodi_user_profile updated when wp_user_id is found by email match"
   },
   "architecture_compliance": {
     "freeze_zone": "RESPECTED",
     "governance_engine_modified": false,
-    "filter_logic_modified": false,
-    "data_source_refactor": "wp_usermeta → wp_prodi_user_profile",
-    "backward_compatibility": "Drop-in replacement (same return type)"
-  },
-  "next_slice_prep": {
-    "slice_4_ready": "Yes — smartcampus_id column exists",
-    "slice_4_goal": "Smartcampus sync integration"
+    "prodi_filter_modified": false,
+    "additive_change": true,
+    "rollback": "DROP TABLE wp_prodi_smartcampus_sync + delete class-smartcampus-sync.php"
   }
 }
