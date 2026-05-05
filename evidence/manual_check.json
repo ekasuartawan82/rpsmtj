@@ -22,33 +22,32 @@
         "migration_applied": "CREATE TABLE wp_prodi_user_profile + seed (3 rows)"
       }
     },
-    "t2_data_integrity": {
+    "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "Data migration from wp_usermeta to wp_prodi_user_profile",
-      "expected": "Test users migrated with correct prodi_code values",
-      "observed": "3 user profiles created: user_id 2,3,4 with prodi_code=MTJ",
+      "scenario": "Cross-prodi access blocked via wp_prodi_user_profile lookup",
+      "expected": "HTTP 403 — actor_prodi !== rps_prodi",
+      "observed": "Filter reads actor prodi from wp_prodi_user_profile; mismatch → 403 denied",
       "screenshot": "evidence/t2_cross_prodi_denied.txt",
-      "evidence_type": "database_verification",
+      "evidence_type": "code_verification",
       "details": {
-        "user_id_2": "MTJ, dosen",
-        "user_id_3": "MTJ, koordinator_rmk",
-        "user_id_4": "MTJ, kaprodi",
-        "is_active": "All TRUE",
-        "unique_constraint": "uq_user_id enforced"
+        "lookup_source": "wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
+        "actor_prodi": "MTJ",
+        "rps_prodi": "TO",
+        "result": "Access denied — cross-prodi"
       }
     },
-    "t3_governance_regression": {
+    "t3_admin": {
       "status": "PASS",
-      "scenario": "Governance behavior unchanged after lookup path refactor",
-      "expected": "K6 signature 1×200, 9×403, 0×500 (same as Slice 2)",
-      "observed": "Filter logic unchanged (actor_prodi === rps_prodi) — only data source changed",
+      "scenario": "Admin bypass works — profile table NOT queried for administrator",
+      "expected": "HTTP 200 — user_can('administrator') bypass at line 29",
+      "observed": "Administrator role bypasses wp_prodi_user_profile lookup entirely",
       "screenshot": "evidence/t3_admin_all_prodi.txt",
       "evidence_type": "code_verification",
       "details": {
-        "governance_engine": "NOT MODIFIED",
-        "filter_logic": "UNCHANGE D",
+        "bypass_check": "user_can($actor_user_id, 'administrator') — BEFORE profile table query",
         "data_source_change": "wp_usermeta → wp_prodi_user_profile",
-        "rollback_safe": "Yes (can revert to get_user_meta)"
+        "governance_engine": "NOT MODIFIED",
+        "filter_logic": "UNCHANGED (actor_prodi === rps_prodi)"
       }
     }
   },
