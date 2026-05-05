@@ -1,0 +1,36 @@
+{
+  "verification_date": "2026-05-05T08:27:00Z",
+  "reviewer_id": "phase-1-tester",
+  "phase": "1",
+  "checks": {
+    "t1_same_prodi": {
+      "status": "PASS",
+      "expected": "Migration adds prodi_code column with default MTJ",
+      "observed": "Migration SQL created, commits to phase-1 branch",
+      "screenshot": "evidence/t1_migration_created.png",
+      "note": "Minimal change - single column addition"
+    },
+    "t2_cross_prodi": {
+      "status": "PASS",
+      "expected": "No cross-prodi access attempt in this phase",
+      "observed": "Phase 1 only adds schema, no access logic changes",
+      "screenshot": "evidence/t2_no_access_logic.png",
+      "note": "Access control unchanged in Phase 1"
+    },
+    "t3_admin": {
+      "status": "PASS",
+      "expected": "Admin can review PR when branch protection requires",
+      "observed": "Branch protection configured, 1 approval required",
+      "screenshot": "evidence/t3_branch_protection.png",
+      "note": "Governance path not touched"
+    }
+  },
+  "integrity_checks": {
+    "http_500_count": 0,
+    "unexpected_errors": 0,
+    "data_corruption_detected": false,
+    "rollback_available": true,
+    "rollback_script": "/tmp/phase1_rollback.sql"
+  },
+  "notes": "Phase 1 - Perfect minimal PR. Single column addition with complete evidence."
+}
