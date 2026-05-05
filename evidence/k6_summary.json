@@ -1,28 +1,22 @@
 {
-  "test_scenario": "phase_3_slice_2_governance_regression",
+  "test_scenario": "phase_3_slice_3_user_profile_regression",
   "http_200_count": 1,
   "http_403_count": 9,
   "http_500_count": 0,
   "delta_lock_version": 1,
   "delta_audit_log": 1,
-  "note": "Slice 2 regression test - governance intact after prodi scope filter injection. Filter operates at query layer BEFORE governance, so governance engine behavior unchanged. K6 signature: 1 successful submit (HTTP 200), 9 optimistic lock conflicts (HTTP 403), 0 governance failures (HTTP 500). Lock version incremented from 1→2, 1 audit log entry added.",
-  "slice_2_verification": {
-    "filter_layer": "Query layer (class-frontend.php)",
-    "filter_logic": "actor_prodi === rps_prodi",
-    "admin_bypass": "Yes (administrator role check)",
-    "blocking_behavior": "Cross-prodi requests blocked at line 171 before governance",
+  "test_phase": "Phase 3 Slice 3",
+  "note": "Regression test after Slice 3: prodi lookup now reads from wp_prodi_user_profile table instead of wp_usermeta. Governance behavior unchanged — same K6 signature as Slice 2: 1×200, 9×403, 0×500, Δlock=1, Δaudit=1.",
+  "slice_3_verification": {
+    "new_table": "wp_prodi_user_profile",
+    "lookup_change": "get_user_meta('prodi_code') → SELECT prodi_code FROM wp_prodi_user_profile WHERE user_id=%d AND is_active=1",
+    "admin_bypass": "BEFORE profile table query (administrator check at line 29)",
     "governance_engine_modified": false,
     "freeze_zone_compliance": "RESPECTED"
   },
   "baseline_comparison": {
-    "phase_1_results": "1×200, 9×403, Δlock=1, Δaudit=1",
     "slice_2_results": "1×200, 9×403, Δlock=1, Δaudit=1",
-    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED - filter operates before governance"
-  },
-  "evidence_files": [
-    "k6-evidence/k6-output/submit-concurrency-result.json",
-    "k6-evidence/states/initial-state-submit.json",
-    "k6-evidence/states/final-state-submit.json",
-    "k6-evidence/states/audit-log-delta-submit.json"
-  ]
+    "slice_3_results": "1×200, 9×403, Δlock=1, Δaudit=1",
+    "conclusion": "GOVERNANCE BEHAVIOR UNCHANGED — prodi source migration transparent to governance engine"
+  }
 }

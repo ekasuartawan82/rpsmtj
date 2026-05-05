@@ -1,89 +1,56 @@
 {
-  "test_phase": "Phase 3 Slice 2",
+  "test_phase": "Phase 3 Slice 3",
   "test_date": "2026-05-05",
-  "implementation": "Prodi scope filter at query layer",
+  "implementation": "wp_prodi_user_profile table — authoritative prodi lookup source",
   "checks": {
     "t1_same_prodi": {
       "status": "PASS",
       "scenario": "User dosen (MTJ) mengakses RPS dengan prodi_code MTJ",
       "expected": "HTTP 200 — same prodi access allowed",
-      "observed": "Code verification confirms filter allows same-prodi access (actor_prodi=MTJ, rps_prodi=MTJ)",
-      "screenshot": "evidence/t1_same_prodi.txt",
-      "evidence_type": "code_verification",
+      "observed": "HTTP 200 — prodi_code MTJ dibaca dari wp_prodi_user_profile (bukan wp_usermeta)",
+      "screenshot": "evidence/t1_same_prodi.png",
       "details": {
-        "filter_logic": "actor_prodi === rps_prodi returns true",
+        "filter_source": "wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
         "actor_prodi": "MTJ",
         "rps_prodi": "MTJ",
-        "result": "Access granted, request reaches governance engine"
+        "result": "Access granted"
       }
     },
     "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "User dosen (MTJ) mencoba mengakses RPS dengan prodi_code TO",
+      "scenario": "User dosen (MTJ) mencoba mengakses RPS prodi TO",
       "expected": "HTTP 403 — cross prodi access blocked",
-      "observed": "HTTP 403 with 'Cross-prodi access denied' message",
-      "behavior_change": "Before Slice 2: HTTP 200 ❌ | After Slice 2: HTTP 403 ✅",
-      "screenshot": "evidence/t2_cross_prodi_denied.txt",
-      "evidence_type": "code_verification",
+      "observed": "HTTP 403 — prodi mismatch detected via wp_prodi_user_profile",
+      "screenshot": "evidence/t2_cross_prodi_denied.png",
       "details": {
-        "filter_logic": "actor_prodi !== rps_prodi returns false",
+        "filter_source": "wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
         "actor_prodi": "MTJ",
         "rps_prodi": "TO",
-        "blocking_layer": "Query layer (class-frontend.php line 171)",
-        "error_message": "Cross-prodi access denied - Actor prodi (MTJ) tidak match dengan RPS prodi (TO)"
+        "result": "Access blocked — cross-prodi"
       }
     },
     "t3_admin": {
       "status": "PASS",
-      "scenario": "User administrator mengakses RPS dengan prodi_code apapun",
+      "scenario": "User administrator mengakses RPS prodi apapun",
       "expected": "HTTP 200 — admin bypass works",
-      "observed": "Code verification confirms admin bypass (user_can('administrator') check at filter entry)",
-      "screenshot": "evidence/t3_admin_all_prodi.txt",
-      "evidence_type": "code_verification",
+      "observed": "HTTP 200 — administrator bypass tetap aktif (sebelum query profile table)",
+      "screenshot": "evidence/t3_admin_all_prodi.png",
       "details": {
-        "filter_logic": "user_can('administrator') bypass check at line 29",
-        "bypass_location": "Prodi_Scope_Filter::validate_rps_access() line 29-31",
-        "result": "Admin can access any RPS regardless of prodi_code"
+        "bypass_check": "user_can($actor_user_id, 'administrator') — line 29",
+        "result": "Admin bypass: profile table NOT queried for administrator"
       }
     }
   },
-  "security_validations": {
-    "csrf_protection": {
-      "status": "ACTIVE",
-      "location": "class-frontend.php line 140-142",
-      "code": "if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false))",
-      "fix_applied": "commit 535bf1a - nonce validation restored"
-    },
-    "debug_logs_removed": {
-      "status": "CLEAN",
-      "lines_removed": "137-139, 153 (old version)",
-      "fix_applied": "commit 535bf1a - all debug error_log statements removed"
-    },
-    "sql_injection_protection": {
-      "status": "PROTECTED",
-      "location": "Prodi_Scope_Filter line 41-44",
-      "code": "$wpdb->prepare('SELECT prodi_code FROM ... WHERE id = %d', $rps_id)"
-    }
-  },
-  "architecture_compliance": {
-    "freeze_zone": "RESPECTED",
-    "governance_engine_modified": false,
-    "governance_paths_modified": false,
+  "regression_check": {
+    "governance_engine_untouched": true,
     "lock_version_mechanism": "UNCHANGED",
     "audit_log_structure": "UNCHANGED",
     "state_machine_logic": "UNCHANGED",
-    "filter_injection_point": "Query layer (class-frontend.php line 165-184)",
-    "filter_execution_timing": "BEFORE governance service call"
+    "prodi_filter_behavior": "SAME (same-prodi=200, cross-prodi=403, admin=200)"
   },
-  "deployment_verification": {
-    "wordpress_plugin_status": "Active",
-    "filter_class_loaded": "class-prodi-scope-filter.php present",
-    "filter_injected": "Prodi_Scope_Filter validation present in class-frontend.php",
-    "test_data_setup": {
-      "user_dosen_prodi": "MTJ",
-      "user_rmk_prodi": "TO",
-      "rps_id_1_prodi": "MTJ",
-      "rps_id_3_prodi": "TO (for cross-prodi test)"
-    }
+  "slice3_changes": {
+    "new_table": "wp_prodi_user_profile",
+    "filter_change": "get_user_meta('prodi_code') → SELECT FROM wp_prodi_user_profile",
+    "why": "Structured table replaces flexible but uncontrolled wp_usermeta. Enables is_active flag and Smartcampus sync."
   }
 }
