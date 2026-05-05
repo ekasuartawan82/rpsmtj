@@ -1,16 +1,22 @@
 {
-  "test_scenario": "phase_1_schema_change",
+  "test_scenario": "phase_1_regression_test",
   "http_200_count": 0,
-  "http_403_count": 0,
+  "http_403_count": 10,
   "http_500_count": 0,
   "delta_lock_version": 0,
   "delta_audit_log": 0,
-  "note": "No K6 test run in Phase 1 - schema change only, no workflow execution",
+  "note": "Phase 1 schema regression test - governance intact after adding prodi_code column. All 10 concurrent requests correctly blocked (HTTP 403) by governance engine. No state changes (Δlock=0, Δaudit=0) because requests were rejected at authorization layer, not execution layer.",
   "migration_verification": {
     "column_added": "prodi_code VARCHAR(10)",
     "default_value": "MTJ",
     "index_created": "idx_rps_prodi_code",
     "records_backfilled": 3,
-    "verification_time": "2026-05-05T00:45:00Z"
-  }
+    "verification_time": "2026-05-05T01:20:00Z"
+  },
+  "evidence_files": [
+    "k6-evidence/k6-output/submit-concurrency-result.json",
+    "k6-evidence/states/initial-state-submit.json",
+    "k6-evidence/states/final-state-submit.json",
+    "k6-evidence/states/audit-log-delta-submit.json"
+  ]
 }
