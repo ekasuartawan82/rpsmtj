@@ -30,10 +30,9 @@ class Prodi_Scope_Filter {
             return true;
         }
 
-        // Get actor prodi from user meta
-        $actor_prodi = get_user_meta( $actor_user_id, 'prodi_code', true );
+        // Get actor prodi from structured profile table (authoritative source)
+        $actor_prodi = self::get_user_prodi( $actor_user_id );
         if ( empty( $actor_prodi ) ) {
-            // No prodi assigned = no access to any RPS
             return false;
         }
 
@@ -53,14 +52,18 @@ class Prodi_Scope_Filter {
     }
 
     /**
-     * Get prodi code for a user
-     * Helper function for testing and debugging
+     * Get prodi code for a user from wp_prodi_user_profile table
      *
      * @param int $user_id WordPress user ID
-     * @return string|false Prodi code or false if not assigned
+     * @return string|false Prodi code or false if not assigned / inactive
      */
     public static function get_user_prodi( int $user_id ) {
-        return get_user_meta( $user_id, 'prodi_code', true );
+        global $wpdb;
+
+        return $wpdb->get_var( $wpdb->prepare(
+            "SELECT prodi_code FROM {$wpdb->prefix}prodi_user_profile WHERE user_id = %d AND is_active = 1",
+            $user_id
+        ) ) ?: false;
     }
 
     /**

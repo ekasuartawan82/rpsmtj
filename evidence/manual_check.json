@@ -1,89 +1,72 @@
 {
-  "test_phase": "Phase 3 Slice 2",
+  "test_phase": "Phase 3 Slice 3",
   "test_date": "2026-05-05",
-  "implementation": "Prodi scope filter at query layer",
+  "implementation": "wp_prodi_user_profile table — structured prodi lookup",
   "checks": {
     "t1_same_prodi": {
       "status": "PASS",
-      "scenario": "User dosen (MTJ) mengakses RPS dengan prodi_code MTJ",
-      "expected": "HTTP 200 — same prodi access allowed",
-      "observed": "Code verification confirms filter allows same-prodi access (actor_prodi=MTJ, rps_prodi=MTJ)",
+      "scenario": "Prodi lookup from wp_prodi_user_profile table",
+      "expected": "Filter queries wp_prodi_user_profile instead of wp_usermeta",
+      "observed": "Prodi_Scope_Filter updated to use structured table with is_active guard",
       "screenshot": "evidence/t1_same_prodi.txt",
       "evidence_type": "code_verification",
       "details": {
-        "filter_logic": "actor_prodi === rps_prodi returns true",
-        "actor_prodi": "MTJ",
-        "rps_prodi": "MTJ",
-        "result": "Access granted, request reaches governance engine"
+        "old_implementation": "get_user_meta($user_id, 'prodi_code', true)",
+        "new_implementation": "SELECT prodi_code FROM wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
+        "advantages": [
+          "Structured schema (not ad-hoc usermeta)",
+          "is_active guard for soft delete",
+          "Supports academic_role field",
+          "Prepares for Smartcampus sync (Slice 4)"
+        ],
+        "migration_applied": "CREATE TABLE wp_prodi_user_profile + seed (3 rows)"
       }
     },
     "t2_cross_prodi": {
       "status": "PASS",
-      "scenario": "User dosen (MTJ) mencoba mengakses RPS dengan prodi_code TO",
-      "expected": "HTTP 403 — cross prodi access blocked",
-      "observed": "HTTP 403 with 'Cross-prodi access denied' message",
-      "behavior_change": "Before Slice 2: HTTP 200 ❌ | After Slice 2: HTTP 403 ✅",
+      "scenario": "Cross-prodi access blocked via wp_prodi_user_profile lookup",
+      "expected": "HTTP 403 — actor_prodi !== rps_prodi",
+      "observed": "Filter reads actor prodi from wp_prodi_user_profile; mismatch → 403 denied",
       "screenshot": "evidence/t2_cross_prodi_denied.txt",
       "evidence_type": "code_verification",
       "details": {
-        "filter_logic": "actor_prodi !== rps_prodi returns false",
+        "lookup_source": "wp_prodi_user_profile WHERE user_id = %d AND is_active = 1",
         "actor_prodi": "MTJ",
         "rps_prodi": "TO",
-        "blocking_layer": "Query layer (class-frontend.php line 171)",
-        "error_message": "Cross-prodi access denied - Actor prodi (MTJ) tidak match dengan RPS prodi (TO)"
+        "result": "Access denied — cross-prodi"
       }
     },
     "t3_admin": {
       "status": "PASS",
-      "scenario": "User administrator mengakses RPS dengan prodi_code apapun",
-      "expected": "HTTP 200 — admin bypass works",
-      "observed": "Code verification confirms admin bypass (user_can('administrator') check at filter entry)",
+      "scenario": "Admin bypass works — profile table NOT queried for administrator",
+      "expected": "HTTP 200 — user_can('administrator') bypass at line 29",
+      "observed": "Administrator role bypasses wp_prodi_user_profile lookup entirely",
       "screenshot": "evidence/t3_admin_all_prodi.txt",
       "evidence_type": "code_verification",
       "details": {
-        "filter_logic": "user_can('administrator') bypass check at line 29",
-        "bypass_location": "Prodi_Scope_Filter::validate_rps_access() line 29-31",
-        "result": "Admin can access any RPS regardless of prodi_code"
+        "bypass_check": "user_can($actor_user_id, 'administrator') — BEFORE profile table query",
+        "data_source_change": "wp_usermeta → wp_prodi_user_profile",
+        "governance_engine": "NOT MODIFIED",
+        "filter_logic": "UNCHANGED (actor_prodi === rps_prodi)"
       }
     }
   },
-  "security_validations": {
-    "csrf_protection": {
-      "status": "ACTIVE",
-      "location": "class-frontend.php line 140-142",
-      "code": "if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false))",
-      "fix_applied": "commit 535bf1a - nonce validation restored"
-    },
-    "debug_logs_removed": {
-      "status": "CLEAN",
-      "lines_removed": "137-139, 153 (old version)",
-      "fix_applied": "commit 535bf1a - all debug error_log statements removed"
-    },
-    "sql_injection_protection": {
-      "status": "PROTECTED",
-      "location": "Prodi_Scope_Filter line 41-44",
-      "code": "$wpdb->prepare('SELECT prodi_code FROM ... WHERE id = %d', $rps_id)"
-    }
+  "migration_verification": {
+    "table_created": "wp_prodi_user_profile",
+    "columns": "id, user_id, institution_code, prodi_code, academic_role, smartcampus_id, is_active, created_at, updated_at",
+    "indexes": "PRIMARY (id), UNIQUE (user_id), idx_prodi_code, idx_smartcampus_id",
+    "seed_records": 3,
+    "constraints": "uq_user_id enforced"
   },
   "architecture_compliance": {
     "freeze_zone": "RESPECTED",
     "governance_engine_modified": false,
-    "governance_paths_modified": false,
-    "lock_version_mechanism": "UNCHANGED",
-    "audit_log_structure": "UNCHANGED",
-    "state_machine_logic": "UNCHANGED",
-    "filter_injection_point": "Query layer (class-frontend.php line 165-184)",
-    "filter_execution_timing": "BEFORE governance service call"
+    "filter_logic_modified": false,
+    "data_source_refactor": "wp_usermeta → wp_prodi_user_profile",
+    "backward_compatibility": "Drop-in replacement (same return type)"
   },
-  "deployment_verification": {
-    "wordpress_plugin_status": "Active",
-    "filter_class_loaded": "class-prodi-scope-filter.php present",
-    "filter_injected": "Prodi_Scope_Filter validation present in class-frontend.php",
-    "test_data_setup": {
-      "user_dosen_prodi": "MTJ",
-      "user_rmk_prodi": "TO",
-      "rps_id_1_prodi": "MTJ",
-      "rps_id_3_prodi": "TO (for cross-prodi test)"
-    }
+  "next_slice_prep": {
+    "slice_4_ready": "Yes — smartcampus_id column exists",
+    "slice_4_goal": "Smartcampus sync integration"
   }
 }
