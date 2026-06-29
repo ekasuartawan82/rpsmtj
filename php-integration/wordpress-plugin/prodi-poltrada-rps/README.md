@@ -97,7 +97,7 @@ Dua test suite CLI berjalan tanpa WordPress (mock `$wpdb`):
 ```bash
 cd prodi-poltrada-rps
 php test-concurrency.php   # governance + concurrency + freshness (7 checks)
-php test-validator.php     # OBE hard blockers + warnings (12 checks)
+php test-validator.php     # OBE hard blockers + warnings (19 checks)
 ```
 
 Verifikasi end-to-end manual di staging: lihat

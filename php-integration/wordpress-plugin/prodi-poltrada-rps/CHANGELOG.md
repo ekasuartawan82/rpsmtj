@@ -91,14 +91,25 @@ plugin (`php-integration/wordpress-plugin/prodi-poltrada-rps/`).
   are likewise flagged as requiring behavioral verification on staging.
 
 ### Scope of this change
-- 12 PHP files touched: 7 modified (`prodi-poltrada-rps.php`,
-  `class-db.php`, `class-governance.php`, `class-frontend.php`,
-  `class-prodi-scope-filter.php`, `class-dashboard-filter.php`,
-  `class-smartcampus-sync.php`) + 5 new (`class-migration.php`,
-  `class-rps-validator.php`, `class-rps-pdf.php`, `test-concurrency.php`,
-  `test-validator.php`). Plus `templates/rps-document.php`,
-  `composer.json`, `CHANGELOG.md`, `README.md`, `sql/*`,
-  `tests/manual-verification-checklist.md`.
+- **15 PHP files touched** (count derived from `git show --name-status
+  e83e356 -- '*.php'`): **7 modified** — `prodi-poltrada-rps.php`,
+  `includes/class-db.php`, `includes/class-governance.php`,
+  `includes/class-frontend.php`, `includes/class-prodi-scope-filter.php`,
+  `includes/class-dashboard-filter.php`, `includes/class-smartcampus-sync.php`;
+  **8 new** — `includes/class-migration.php`,
+  `includes/class-rps-validator.php`, `includes/class-rps-pdf.php`,
+  `includes/templates/rps-document.php`, `sql/seed-test-users.php`,
+  `test-concurrency.php`, `test-validator.php` (the last two are CLI test
+  harnesses, counted as PHP). Plus non-PHP: `composer.json`, `CHANGELOG.md`,
+  `README.md`, `sql/seed-kurikulum-sample.sql`,
+  `tests/manual-verification-checklist.md`, and pre-existing bundled files
+  under `assets/`, `docs/`, `tests/k6/`.
+
+  > Note: an earlier draft of this section and the 0.2.0 commit message
+  > mis-stated the count as "12 (7 modified + 5 new)" and the test count as
+  > "19/9". Corrected here; the authoritative counts are git-derived above.
+  > Process lesson recorded: derive file/test counts from git output, not
+  > manual enumeration.
 
 ### Not in scope (unchanged)
 - Standalone PHP auth adapter under `php-integration/config/`+`lib/`+`public/`
