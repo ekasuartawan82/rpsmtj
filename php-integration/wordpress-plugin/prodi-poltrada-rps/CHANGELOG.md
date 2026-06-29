@@ -91,12 +91,13 @@ plugin (`php-integration/wordpress-plugin/prodi-poltrada-rps/`).
   are likewise flagged as requiring behavioral verification on staging.
 
 ### Scope of this change
-- **15 PHP files touched** (count derived from `git show --name-status
-  e83e356 -- '*.php'`): **7 modified** — `prodi-poltrada-rps.php`,
+- **14 PHP files touched** (counted by `git show --name-status e83e356 -- '*.php'
+  | grep -cE '^[MA]\t'`, which matches status + TAB so the commit header line
+  `Author:` is excluded): **7 modified** — `prodi-poltrada-rps.php`,
   `includes/class-db.php`, `includes/class-governance.php`,
   `includes/class-frontend.php`, `includes/class-prodi-scope-filter.php`,
   `includes/class-dashboard-filter.php`, `includes/class-smartcampus-sync.php`;
-  **8 new** — `includes/class-migration.php`,
+  **7 new** — `includes/class-migration.php`,
   `includes/class-rps-validator.php`, `includes/class-rps-pdf.php`,
   `includes/templates/rps-document.php`, `sql/seed-test-users.php`,
   `test-concurrency.php`, `test-validator.php` (the last two are CLI test
@@ -105,11 +106,14 @@ plugin (`php-integration/wordpress-plugin/prodi-poltrada-rps/`).
   `tests/manual-verification-checklist.md`, and pre-existing bundled files
   under `assets/`, `docs/`, `tests/k6/`.
 
-  > Note: an earlier draft of this section and the 0.2.0 commit message
-  > mis-stated the count as "12 (7 modified + 5 new)" and the test count as
-  > "19/9". Corrected here; the authoritative counts are git-derived above.
-  > Process lesson recorded: derive file/test counts from git output, not
-  > manual enumeration.
+  > Audit note: this count was wrong in three successive iterations —
+  > "12 (7+5)", then "15 (7+8)". The second error was caused by piping git
+  > output through `grep -c '^A'`, which also matched the commit-header line
+  > `Author:` (starts with 'A'), inflating the new-file count from 7 to 8.
+  > The authoritative command matches status + TAB (`^[MA]\t`) so headers
+  > cannot match. Counts in sign-off docs must come from a counter command
+  > whose output is pasted verbatim, then reconciled against the raw list —
+  > not from trusting any single tool's number.
 
 ### Not in scope (unchanged)
 - Standalone PHP auth adapter under `php-integration/config/`+`lib/`+`public/`
