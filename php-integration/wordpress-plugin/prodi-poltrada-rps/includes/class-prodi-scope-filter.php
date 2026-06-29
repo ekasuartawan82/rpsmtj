@@ -52,18 +52,20 @@ class Prodi_Scope_Filter {
     }
 
     /**
-     * Get prodi code for a user from wp_prodi_user_profile table
+     * Get prodi code for a user.
+     *
+     * Stored in wp_usermeta (meta_key = 'rps_prodi_code') so it is editable
+     * from the standard WordPress Users screen. Replaces the old dedicated
+     * prodi_user_profile table.
      *
      * @param int $user_id WordPress user ID
-     * @return string|false Prodi code or false if not assigned / inactive
+     * @return string|false Upper-cased prodi code or false if not assigned.
      */
     public static function get_user_prodi( int $user_id ) {
-        global $wpdb;
+        $code = get_user_meta( $user_id, 'rps_prodi_code', true );
+        $code = is_string( $code ) ? strtoupper( trim( $code ) ) : '';
 
-        return $wpdb->get_var( $wpdb->prepare(
-            "SELECT prodi_code FROM {$wpdb->prefix}prodi_user_profile WHERE user_id = %d AND is_active = 1",
-            $user_id
-        ) ) ?: false;
+        return $code !== '' ? $code : false;
     }
 
     /**

@@ -65,27 +65,32 @@ class Prodi_Dashboard_Filter {
     }
 
     /**
-     * Get the actor array expected by Prodi_RPS_DB::get_rps_list().
-     * Reads role from wp_prodi_user_profile.academic_role.
+     * Get the actor array expected by Prodi_RPS_DB::list_rps().
+     *
+     * Reads role from wp_usermeta (meta_key = 'rps_role'), falling back to the
+     * canonical role resolution in Prodi_RPS_DB. Replaces the old
+     * wp_prodi_user_profile.academic_role lookup.
      *
      * @param int $actor_user_id
-     * @return array { id: int, role: string }
+     * @return array { id: int, role: string, prodi_code: string|null }
      */
     public static function get_actor( int $actor_user_id ): array {
-        global $wpdb;
-
         if ( user_can( $actor_user_id, 'administrator' ) ) {
-            return [ 'id' => $actor_user_id, 'role' => 'admin' ];
+            return [
+                'id'         => $actor_user_id,
+                'role'       => 'admin',
+                'prodi_code' => null,
+            ];
         }
 
-        $role = $wpdb->get_var( $wpdb->prepare(
-            "SELECT academic_role FROM {$wpdb->prefix}prodi_user_profile WHERE user_id = %d AND is_active = 1",
-            $actor_user_id
-        ) );
+        $db   = new Prodi_RPS_DB();
+        $user = get_userdata( $actor_user_id );
+        $role = $user ? $db->canonical_role_for_user( $user ) : 'dosen';
 
         return [
-            'id'   => $actor_user_id,
-            'role' => $role ?: 'dosen',
+            'id'         => $actor_user_id,
+            'role'       => $role,
+            'prodi_code' => Prodi_Scope_Filter::get_user_prodi( $actor_user_id ) ?: null,
         ];
     }
 }

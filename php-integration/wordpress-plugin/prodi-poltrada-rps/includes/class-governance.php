@@ -6,6 +6,7 @@ if (!defined('WPINC')) {
 
 class Prodi_RPS_Governance_Service {
     private Prodi_RPS_DB $db;
+    private ?Prodi_RPS_Validator $validator = null;
 
     // Authorization Matrix as Single Source of Truth
     private static array $matrix = [
@@ -37,11 +38,53 @@ class Prodi_RPS_Governance_Service {
     }
 
     /**
+     * Inject the validator (avoids a constructor cycle: the validator itself
+     * depends on the DB). When set, submit_to_rmk enforces OBE hard blockers
+     * and acknowledged-warnings checks before transitioning.
+     */
+    public function set_validator(Prodi_RPS_Validator $validator): void {
+        $this->validator = $validator;
+    }
+
+    /**
      * Guard function: Check if action is allowed by matrix.
      */
     private function assert_action_allowed(string $state, string $role, string $action): void {
         if (!isset(self::$matrix[$state][$role]) || !in_array($action, self::$matrix[$state][$role], true)) {
             throw new RPS_Governance_Exception("Governance Error: Role '{$role}' is not allowed to '{$action}' when RPS status is '{$state}'.");
+        }
+    }
+
+    /**
+     * Anti-rubber-stamping guard. A reviewer cannot approve a document that
+     * has changed since their last review.
+     *
+     * Rules:
+     *  - First review (last_reviewed_at_by_<reviewer> is NULL) is always allowed.
+     *  - Otherwise the document's last_changed_at must be <= the reviewer's
+     *    last review timestamp. A newer change forces a fresh review.
+     *
+     * @param object $latest      Row locked via SELECT ... FOR UPDATE.
+     * @param string $reviewer    'rmk' or 'kaprodi'.
+     * @throws RPS_Governance_Exception when the review is stale.
+     */
+    private function assert_review_is_fresh(object $latest, string $reviewer): void {
+        $reviewCol = 'last_reviewed_at_by_' . $reviewer;
+        $lastReview = $latest->$reviewCol ?? null;
+        $lastChanged = $latest->last_changed_at ?? null;
+
+        // No prior review yet → this is the first review, always allowed.
+        if ($lastReview === null) {
+            return;
+        }
+
+        // If the doc changed strictly after the last review, block approval.
+        if ($lastChanged !== null && strtotime((string) $lastChanged) > strtotime((string) $lastReview)) {
+            $reviewerLabel = $reviewer === 'rmk' ? 'Koordinator RMK' : 'Kaprodi';
+            throw new RPS_Governance_Exception(
+                "Anti-rubber-stamping: dokumen RPS telah diubah sebelum review terakhir {$reviewerLabel}. " .
+                "Dokumen harus direview ulang sebelum dapat disetujui."
+            );
         }
     }
 
@@ -63,6 +106,12 @@ class Prodi_RPS_Governance_Service {
 
     /**
      * Perform state transition with atomic transaction and optimistic locking.
+     *
+     * Anti-rubber-stamping (freshness guard): a reviewer cannot approve a
+     * document that changed after their last review (last_changed_at >
+     * last_reviewed_at_by_<reviewer>). The first review is always allowed
+     * (NULL review timestamp). On reject, the *other* reviewer's timestamp is
+     * reset to NULL so both reviewers re-review the next revision.
      */
     private function execute_transition(int $rpsId, int $currentLockVersion, string $nextStatus, string $action, ?string $note, array $actor): bool {
         global $wpdb;
@@ -87,19 +136,22 @@ class Prodi_RPS_Governance_Service {
             'last_changed_at' => $now,
         ];
 
-        if ($action === 'approve_rmk' || $action === 'reject_rmk') {
-            $updates['last_reviewed_at_by_rmk'] = $now;
-        }
-        if ($action === 'approve_kaprodi' || $action === 'reject_kaprodi') {
-            $updates['last_reviewed_at_by_kaprodi'] = $now;
-        }
+        // Freshness guard: only applies to *approvals*. Rejects are allowed
+        // regardless (a reviewer may always send back for revision).
+        $reviewAction = $action === 'approve_rmk' ? 'rmk' : ($action === 'approve_kaprodi' ? 'kaprodi' : null);
 
         // 1. START TRANSACTION
         $wpdb->query("START TRANSACTION");
 
         try {
-            // 2. Fetch latest state from DB inside transaction
-            $latest = $wpdb->get_row($wpdb->prepare("SELECT workflow_status, lock_version, current_revision_count FROM {$rpsTable} WHERE id = %d FOR UPDATE", $rpsId));
+            // 2. Fetch latest state from DB inside transaction (include
+            //    freshness timestamps so the guard uses authoritative data).
+            $latest = $wpdb->get_row($wpdb->prepare(
+                "SELECT workflow_status, lock_version, current_revision_count,
+                        last_changed_at, last_reviewed_at_by_rmk, last_reviewed_at_by_kaprodi
+                 FROM {$rpsTable} WHERE id = %d FOR UPDATE",
+                $rpsId
+            ));
             if (!$latest) {
                 throw new RPS_Governance_Exception("RPS not found.");
             }
@@ -107,25 +159,52 @@ class Prodi_RPS_Governance_Service {
             // 3. Re-evaluate Guard using LATEST state from DB
             $this->assert_action_allowed($latest->workflow_status, $actor['role'], $action);
 
-            // 4. Overwrite currentLockVersion with DB's latest version (Since we use FOR UPDATE, this is safe to use as lock_version)
-            // But to strictly follow Optimistic Locking, we must assert the frontend's version matches DB's version to prevent stale overrides.
+            // 3b. Freshness guard for approvals (anti-rubber-stamping).
+            if ($reviewAction !== null) {
+                $this->assert_review_is_fresh($latest, $reviewAction);
+            }
+
+            // 4. Optimistic locking: frontend's lock_version must match DB.
             if ((int) $latest->lock_version !== $currentLockVersion) {
                 throw new RPS_Concurrency_Exception("Concurrency conflict: The RPS has been modified by another process. Version mismatch.");
+            }
+
+            // Stamp the acting reviewer's review timestamp.
+            if ($action === 'approve_rmk' || $action === 'reject_rmk') {
+                $updates['last_reviewed_at_by_rmk'] = $now;
+            }
+            if ($action === 'approve_kaprodi' || $action === 'reject_kaprodi') {
+                $updates['last_reviewed_at_by_kaprodi'] = $now;
+            }
+
+            // On reject, reset the *other* reviewer's timestamp so they must
+            // re-review the next revision (symmetric freshness reset).
+            if ($action === 'reject_rmk') {
+                $updates['last_reviewed_at_by_kaprodi'] = null;
+            }
+            if ($action === 'reject_kaprodi') {
+                $updates['last_reviewed_at_by_rmk'] = null;
             }
 
             if ($action === 'reject_rmk' || $action === 'reject_kaprodi') {
                 $updates['current_revision_count'] = (int) $latest->current_revision_count + 1;
             }
 
-            // Build update query dynamically
+            // Build update query dynamically. NULL values are emitted as the
+            // literal SQL keyword (not a %s placeholder) so $wpdb->prepare
+            // does not coerce them to an empty string.
             $setClause = [];
             $values = [];
             foreach ($updates as $column => $value) {
                 if (!in_array($column, $allowedColumns, true)) {
                     throw new RPS_Governance_Exception("Illegal transition column: {$column}");
                 }
-                $setClause[] = "`{$column}` = %s";
-                $values[] = $value;
+                if ($value === null) {
+                    $setClause[] = "`{$column}` = NULL";
+                } else {
+                    $setClause[] = "`{$column}` = %s";
+                    $values[] = $value;
+                }
             }
             // Optimistic locking: Increment lock_version
             $setClause[] = "`lock_version` = `lock_version` + 1";
@@ -177,6 +256,12 @@ class Prodi_RPS_Governance_Service {
         if (!$rps) throw new RPS_Governance_Exception("RPS access denied or not found.");
 
         $this->assert_action_allowed((string) $rps['workflow_status'], $actor['role'], 'submit_to_rmk');
+
+        // OBE compliance gate: hard blockers + acknowledged soft warnings.
+        if ($this->validator) {
+            $this->validator->assert_ready_for_submission($rpsId, $actor);
+            $this->validator->assert_active_warnings_acknowledged($rpsId, $actor);
+        }
 
         return $this->execute_transition($rpsId, $currentLockVersion, Prodi_RPS_DB::STATUS_SUBMITTED_TO_RMK, 'submit_to_rmk', null, $actor);
     }

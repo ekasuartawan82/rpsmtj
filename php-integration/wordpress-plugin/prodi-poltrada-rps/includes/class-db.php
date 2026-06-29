@@ -39,6 +39,10 @@ class Prodi_RPS_DB {
             'whitelist_kko' => 'prodi_rps_whitelist_kko',
             'kurikulum' => 'prodi_kurikulum',
             'dosen' => 'prodi_dosen',
+            'smartcampus_sync' => 'prodi_smartcampus_sync',
+            // Legacy table name (owned by the sibling "Prodi Poltrada" plugin);
+            // referenced only by the usermeta migration for backfill, never created here.
+            'user_profile' => 'prodi_user_profile',
         ];
 
         return $wpdb->prefix . ($map[$name] ?? $name);
@@ -66,6 +70,10 @@ class Prodi_RPS_DB {
             catatan_tambahan LONGTEXT NULL,
             lock_version INT(11) NOT NULL DEFAULT 1,
             parent_rps_id BIGINT(20) UNSIGNED NULL,
+            version_number INT(11) NOT NULL DEFAULT 1,
+            is_current TINYINT(1) NOT NULL DEFAULT 1,
+            prodi_code VARCHAR(10) NULL,
+            program_studi VARCHAR(100) NULL,
             workflow_status VARCHAR(50) NOT NULL DEFAULT 'draft',
             record_status VARCHAR(30) NOT NULL DEFAULT 'active',
             status VARCHAR(50) NOT NULL DEFAULT 'draft',
@@ -81,7 +89,8 @@ class Prodi_RPS_DB {
             KEY status (status),
             KEY dosen_pengembang_user_id (dosen_pengembang_user_id),
             KEY koordinator_rmk_user_id (koordinator_rmk_user_id),
-            KEY kaprodi_user_id (kaprodi_user_id)
+            KEY kaprodi_user_id (kaprodi_user_id),
+            KEY prodi_version (prodi_code, mata_kuliah_id, is_current)
         ) {$charset};";
 
         $tables[] = "CREATE TABLE " . self::table('rps_dosen_pengampu') . " (
@@ -275,8 +284,62 @@ class Prodi_RPS_DB {
             UNIQUE KEY kata (kata)
         ) {$charset};";
 
+        // ETL staging table for smartcampus CSV import (raw rows before upsert into usermeta)
+        $tables[] = "CREATE TABLE " . self::table('smartcampus_sync') . " (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            nidn VARCHAR(50) NULL,
+            nama_lengkap VARCHAR(255) NULL,
+            email VARCHAR(255) NULL,
+            prodi_code VARCHAR(10) NULL,
+            wp_user_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+            sync_source VARCHAR(50) NOT NULL DEFAULT 'manual',
+            raw_data LONGTEXT NULL,
+            last_synced DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_nidn (nidn),
+            KEY wp_user_id (wp_user_id),
+            KEY prodi_code (prodi_code)
+        ) {$charset};";
+
         foreach ($tables as $sql) {
             dbDelta($sql);
+        }
+    }
+
+    /**
+     * Idempotent column backfill for sites where the plugin was activated
+     * before the prodi_rps schema gained prodi_code / version_number /
+     * is_current / program_studi. dbDelta only ADDs columns on CREATE, so we
+     * verify each column via information_schema and ALTER TABLE explicitly.
+     *
+     * Safe to call repeatedly (no-op once columns exist).
+     */
+    public function ensure_schema_columns(): void
+    {
+        global $wpdb;
+
+        $rpsTable = self::table('rps');
+        $dbName = DB_NAME;
+
+        $required = [
+            'prodi_code' => "ADD COLUMN prodi_code VARCHAR(10) NULL",
+            'version_number' => "ADD COLUMN version_number INT(11) NOT NULL DEFAULT 1",
+            'is_current' => "ADD COLUMN is_current TINYINT(1) NOT NULL DEFAULT 1",
+            'program_studi' => "ADD COLUMN program_studi VARCHAR(100) NULL",
+        ];
+
+        foreach ($required as $column => $alterClause) {
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM information_schema.columns
+                 WHERE table_schema = %s AND table_name = %s AND column_name = %s",
+                $dbName,
+                $rpsTable,
+                $column
+            ));
+
+            if (!$exists) {
+                $wpdb->query("ALTER TABLE {$rpsTable} {$alterClause}");
+            }
         }
     }
 
@@ -288,12 +351,14 @@ class Prodi_RPS_DB {
 
         $user = wp_get_current_user();
         $role = $this->canonical_role_for_user($user);
+        $prodiCode = (string) get_user_meta($user->ID, 'rps_prodi_code', true);
 
         return [
             'id' => (int) $user->ID,
             'name' => $user->display_name ?: $user->user_login,
             'email' => $user->user_email,
             'role' => $role,
+            'prodi_code' => $prodiCode !== '' ? $prodiCode : null,
         ];
     }
 
@@ -462,6 +527,7 @@ class Prodi_RPS_DB {
                        dev.display_name AS dosen_pengembang_name,
                        rmk.display_name AS koordinator_rmk_name,
                        kap.display_name AS kaprodi_name,
+                       r.version_number AS version_no,
                        (
                            SELECT COUNT(*)
                            FROM {$rpsTable} rv
@@ -498,6 +564,10 @@ class Prodi_RPS_DB {
             'dosen_pengembang_user_id' => absint($data['dosen_pengembang_user_id']),
             'koordinator_rmk_user_id' => absint($data['koordinator_rmk_user_id']),
             'kaprodi_user_id' => absint($data['kaprodi_user_id']),
+            'prodi_code' => !empty($actor['prodi_code']) ? strtoupper(sanitize_text_field((string) $actor['prodi_code'])) : null,
+            'program_studi' => !empty($data['program_studi']) ? sanitize_text_field((string) $data['program_studi']) : null,
+            'version_number' => 1,
+            'is_current' => 1,
             'status' => self::STATUS_DRAFT,
             'workflow_status' => self::STATUS_DRAFT,
             'record_status' => 'active',
@@ -521,18 +591,14 @@ class Prodi_RPS_DB {
     {
         global $wpdb;
 
-        // DEBUG: Log incoming parameters
-        error_log("ACCESS DEBUG - get_rps_detail ID=$id, actor_id=" . $actor['id'] . ", actor_role=" . $actor['role']);
-
         $rpsTable = self::table('rps');
         $usersTable = $wpdb->users;
 
-        // FIX: Removed non-existent wp_prodi_kurikulum table JOIN
-        // This table doesn't exist in the database, causing query to return NULL
         $sql = $wpdb->prepare(
             "SELECT r.*,
                     dev.display_name AS dosen_pengembang_name, dev.user_email AS dosen_pengembang_email,
-                    rmk.display_name AS koordinator_rmk_name, kap.display_name AS kaprodi_name
+                    rmk.display_name AS koordinator_rmk_name, kap.display_name AS kaprodi_name,
+                    r.version_number AS version_no
              FROM {$rpsTable} r
              LEFT JOIN {$usersTable} dev ON dev.ID = r.dosen_pengembang_user_id
              LEFT JOIN {$usersTable} rmk ON rmk.ID = r.koordinator_rmk_user_id
@@ -544,15 +610,7 @@ class Prodi_RPS_DB {
 
         $rps = $wpdb->get_row($sql, ARRAY_A);
 
-        error_log("ACCESS DEBUG - RPS found: " . ($rps ? "YES" : "NO"));
-        if ($rps) {
-            error_log("ACCESS DEBUG - RPS dosen_pengembang_user_id=" . $rps['dosen_pengembang_user_id']);
-        }
-
-        $canAccess = $this->can_access_rps($rps, $actor);
-        error_log("ACCESS DEBUG - can_access_rps: " . ($canAccess ? "YES" : "NO"));
-
-        if (!$rps || !$canAccess) {
+        if (!$rps || !$this->can_access_rps($rps, $actor)) {
             return null;
         }
 
@@ -568,42 +626,23 @@ class Prodi_RPS_DB {
 
     public function can_access_rps(array $rps, array $actor): bool
     {
-        // DEBUG: Log all incoming values before any checks
-        error_log('ACCESS DEBUG - can_access_rps() INPUT: ' . json_encode([
-            'actor_id' => isset($actor['id']) ? (int)$actor['id'] : 'NOT SET',
-            'actor_role' => $actor['role'] ?? 'NOT SET',
-            'rps_id' => isset($rps['id']) ? (int)$rps['id'] : 'NOT SET',
-            'rps_dosen_id' => isset($rps['dosen_pengembang_user_id']) ? (int)$rps['dosen_pengembang_user_id'] : 'NOT SET',
-            'rps_rmk_id' => isset($rps['koordinator_rmk_user_id']) ? (int)$rps['koordinator_rmk_user_id'] : 'NOT SET',
-            'rps_kaprodi_id' => isset($rps['kaprodi_user_id']) ? (int)$rps['kaprodi_user_id'] : 'NOT SET',
-            'workflow_status' => $rps['workflow_status'] ?? 'NOT SET',
-        ]));
-
         if ($actor['role'] === self::ROLE_ADMIN) {
-            error_log('ACCESS DEBUG - ADMIN role detected, returning true');
             return true;
         }
 
         if ($actor['role'] === self::ROLE_DOSEN) {
-            $dosenMatch = (int) $rps['dosen_pengembang_user_id'] === (int) $actor['id'];
-            $isPengampu = $this->is_pengampu((int) $rps['id'], (int) $actor['id']);
-            error_log("ACCESS DEBUG - DOSEN role: dosen_match=" . ($dosenMatch ? "YES" : "NO") . ", is_pengampu=" . ($isPengampu ? "YES" : "NO"));
-            return $dosenMatch || $isPengampu;
+            return (int) $rps['dosen_pengembang_user_id'] === (int) $actor['id']
+                || $this->is_pengampu((int) $rps['id'], (int) $actor['id']);
         }
 
         if ($actor['role'] === self::ROLE_KOORDINATOR_RMK) {
-            $rmkMatch = (int) $rps['koordinator_rmk_user_id'] === (int) $actor['id'];
-            error_log("ACCESS DEBUG - KOORDINATOR_RMK role: rmk_match=" . ($rmkMatch ? "YES" : "NO"));
-            return $rmkMatch;
+            return (int) $rps['koordinator_rmk_user_id'] === (int) $actor['id'];
         }
 
         if ($actor['role'] === self::ROLE_KAPRODI) {
-            $kaprodiMatch = (int) $rps['kaprodi_user_id'] === (int) $actor['id'];
-            error_log("ACCESS DEBUG - KAPRODI role: kaprodi_match=" . ($kaprodiMatch ? "YES" : "NO"));
-            return $kaprodiMatch;
+            return (int) $rps['kaprodi_user_id'] === (int) $actor['id'];
         }
 
-        error_log('ACCESS DEBUG - No matching role, returning false');
         return false;
     }
 
@@ -620,28 +659,30 @@ class Prodi_RPS_DB {
             && in_array((string) $rps['workflow_status'], $editableStatuses, true);
     }
 
-    public function update_rps_header(int $id, array $data, array $actor): bool
+    /**
+     * NOTE: Header updates with optimistic locking live in
+     * Prodi_RPS_Governance_Service::update_rps_header() (lock_version-aware,
+     * transactional). There is no DB-layer header mutator on purpose to avoid
+     * a second, unsafe code path. Frontend always routes header edits through
+     * the governance service.
+     */
+
+    /**
+     * Bump last_changed_at on an RPS. Called by sub-entity mutators
+     * (CPL/CPMK/Sub-CPMK/Pertemuan/Pustaka) so the governance freshness guard
+     * (assert_review_is_fresh) treats any content edit as a document change
+     * that invalidates a prior review.
+     */
+    public function touch_last_changed(int $rpsId): void
     {
         global $wpdb;
-
-        $rps = $this->get_rps_detail($id, $actor);
-        if (!$rps || !$this->can_edit_rps($rps, $actor)) {
-            return false;
-        }
-
-        $result = $wpdb->update(self::table('rps'), [
-            'tanggal_penyusunan' => sanitize_text_field((string) $data['tanggal_penyusunan']),
-            'deskripsi_singkat' => wp_kses_post((string) $data['deskripsi_singkat']),
-            'bahan_kajian' => wp_kses_post((string) $data['bahan_kajian']),
-            'catatan_tambahan' => wp_kses_post((string) $data['catatan_tambahan']),
-            'last_changed_at' => current_time('mysql'),
-        ], ['id' => $id], ['%s', '%s', '%s', '%s', '%s'], ['%d']);
-
-        if ($result !== false) {
-            $this->add_approval_log($id, (int) $rps['version_no'], $actor, 'update_header', null);
-        }
-
-        return $result !== false;
+        $wpdb->update(
+            self::table('rps'),
+            ['last_changed_at' => current_time('mysql')],
+            ['id' => $rpsId],
+            ['%s'],
+            ['%d']
+        );
     }
 
     public function add_cpl_to_rps(int $rpsId, array $data, array $actor): bool
@@ -676,6 +717,9 @@ class Prodi_RPS_DB {
             'urutan' => absint($data['urutan'] ?? 1),
         ], ['%d', '%d', '%d']);
 
+        if ($inserted !== false) {
+            $this->touch_last_changed($rpsId);
+        }
         return $inserted !== false;
     }
 
@@ -695,6 +739,9 @@ class Prodi_RPS_DB {
             'urutan' => absint($data['urutan'] ?? 1),
         ], ['%d', '%s', '%s', '%d']);
 
+        if ($result !== false) {
+            $this->touch_last_changed($rpsId);
+        }
         return $result !== false;
     }
 
@@ -716,6 +763,9 @@ class Prodi_RPS_DB {
             'target_ketercapaian_persen' => $this->nullable_decimal($data['target_ketercapaian_persen'] ?? null),
         ], ['%d', '%d', '%s', '%s', '%d', '%f']);
 
+        if ($result !== false) {
+            $this->touch_last_changed($rpsId);
+        }
         return $result !== false;
     }
 
@@ -747,6 +797,9 @@ class Prodi_RPS_DB {
             'bobot_penilaian_persen' => $this->nullable_decimal($data['bobot_penilaian_persen'] ?? null),
         ], ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f']);
 
+        if ($result !== false) {
+            $this->touch_last_changed($rpsId);
+        }
         return $result !== false;
     }
 
@@ -766,6 +819,9 @@ class Prodi_RPS_DB {
             'urutan' => absint($data['urutan'] ?? 1),
         ], ['%d', '%s', '%s', '%d']);
 
+        if ($result !== false) {
+            $this->touch_last_changed($rpsId);
+        }
         return $result !== false;
     }
 
