@@ -301,23 +301,6 @@ class Prodi_RPS_DB {
             KEY prodi_code (prodi_code)
         ) {$charset};";
 
-        // Phase 3A: User profile table (application-layer relation, no hard FK)
-        $tables[] = "CREATE TABLE " . self::table('user_profile') . " (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            user_id BIGINT(20) UNSIGNED NOT NULL,
-            institution_code VARCHAR(50) DEFAULT 'POLTRADA_BALI',
-            prodi_code VARCHAR(10) NOT NULL,
-            academic_role VARCHAR(50) NULL,
-            smartcampus_id VARCHAR(100) NULL,
-            is_active TINYINT(1) NOT NULL DEFAULT 1,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY user_id (user_id),
-            KEY prodi_code (prodi_code),
-            KEY smartcampus_id (smartcampus_id)
-        ) {$charset};";
-
         foreach ($tables as $sql) {
             dbDelta($sql);
         }

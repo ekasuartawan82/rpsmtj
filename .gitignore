@@ -48,3 +48,12 @@ next-env.d.ts
 # Ad-hoc debug/investigation scripts (root-level only)
 /test-*.ts
 /test-*.mjs
+
+# PHP dependencies & vendor
+/php-integration/wordpress-plugin/prodi-poltrada-rps/vendor/
+/php-integration/wordpress-plugin/prodi-poltrada-rps/*.zip
+
+# Root archive files & scratch extraction
+/Archive.zip
+/Archive_extracted/
+

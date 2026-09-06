@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Rollback: Phase 3A Multi-Prodi Infrastructure
+-- Rollback: Phase 3A Multi-Prodi Infrastructure (Option B)
 -- Target: WordPress + MySQL (Poltrada Bali)
 -- ==============================================================================
 
@@ -22,7 +22,7 @@ PREPARE stmt_drop_idx_kur FROM @sql_drop_idx_kur;
 EXECUTE stmt_drop_idx_kur;
 DEALLOCATE PREPARE stmt_drop_idx_kur;
 
--- 2. Drop columns
+-- 2. Drop columns if they exist
 SET @exist_col_rps = (
   SELECT COUNT(*) FROM information_schema.columns 
   WHERE table_schema = DATABASE() AND table_name = 'wp_prodi_rps' AND column_name = 'prodi_code'
@@ -40,6 +40,3 @@ SET @sql_drop_col_kur = IF(@exist_col_kur > 0, 'ALTER TABLE `wp_prodi_kurikulum`
 PREPARE stmt_drop_col_kur FROM @sql_drop_col_kur;
 EXECUTE stmt_drop_col_kur;
 DEALLOCATE PREPARE stmt_drop_col_kur;
-
--- 3. Drop user profile table
-DROP TABLE IF EXISTS `wp_prodi_user_profile`;

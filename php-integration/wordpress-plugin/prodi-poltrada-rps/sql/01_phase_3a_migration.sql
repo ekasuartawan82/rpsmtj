@@ -1,26 +1,11 @@
 -- ==============================================================================
--- Migration: Phase 3A Multi-Prodi Infrastructure
+-- Migration: Phase 3A Multi-Prodi Infrastructure (Option B: Usermeta Architecture)
 -- Target: WordPress + MySQL (Poltrada Bali)
+-- Note: User roles & prodi codes are maintained via wp_usermeta (rps_role, rps_prodi_code)
+--       per Prodi_RPS_Migration::migrate_to_usermeta(). No extra table needed.
 -- ==============================================================================
 
--- 1. Create wp_prodi_user_profile table (application-layer relation, no hard FK)
-CREATE TABLE IF NOT EXISTS `wp_prodi_user_profile` (
-  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `user_id` BIGINT UNSIGNED NOT NULL,
-  `institution_code` VARCHAR(50) DEFAULT 'POLTRADA_BALI',
-  `prodi_code` VARCHAR(10) NOT NULL,  -- MTJ, TO, MLOG
-  `academic_role` VARCHAR(50),
-  `smartcampus_id` VARCHAR(100),
-  `is_active` BOOLEAN DEFAULT TRUE,
-  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-  UNIQUE KEY `user_id` (`user_id`),
-  KEY `prodi_code` (`prodi_code`),
-  KEY `smartcampus_id` (`smartcampus_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 2. Add prodi_code column to wp_prodi_kurikulum (if exists)
+-- 1. Add prodi_code column to wp_prodi_kurikulum (if table exists and column missing)
 SET @exist_kurikulum = (
   SELECT COUNT(*) 
   FROM information_schema.tables 
@@ -42,7 +27,7 @@ PREPARE stmt_kurikulum FROM @sql_kurikulum;
 EXECUTE stmt_kurikulum;
 DEALLOCATE PREPARE stmt_kurikulum;
 
--- 3. Add prodi_code column to wp_prodi_rps (if exists)
+-- 2. Add prodi_code column to wp_prodi_rps (if table exists and column missing)
 SET @exist_rps = (
   SELECT COUNT(*) 
   FROM information_schema.tables 
@@ -64,6 +49,14 @@ PREPARE stmt_rps FROM @sql_rps;
 EXECUTE stmt_rps;
 DEALLOCATE PREPARE stmt_rps;
 
--- 4. Initial Backfill: Ensure existing records have default prodi_code
+-- 3. Initial Backfill: Ensure existing records have default prodi_code
 UPDATE `wp_prodi_rps` SET `prodi_code` = 'MTJ' WHERE `prodi_code` IS NULL OR `prodi_code` = '';
-UPDATE `wp_prodi_kurikulum` SET `prodi_code` = 'MTJ' WHERE `prodi_code` IS NULL OR `prodi_code` = '';
+
+SET @sql_backfill_kurikulum = IF(
+  @exist_kurikulum > 0,
+  'UPDATE `wp_prodi_kurikulum` SET `prodi_code` = "MTJ" WHERE `prodi_code` IS NULL OR `prodi_code` = "";',
+  'SELECT "wp_prodi_kurikulum not present for backfill";'
+);
+PREPARE stmt_bf_kur FROM @sql_backfill_kurikulum;
+EXECUTE stmt_bf_kur;
+DEALLOCATE PREPARE stmt_bf_kur;
