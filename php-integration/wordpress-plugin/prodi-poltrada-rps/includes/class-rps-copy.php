@@ -233,18 +233,19 @@ class Prodi_RPS_Copy {
         $old_cpl_ids = implode( ',', array_map( 'intval', array_keys( $cpl_map ) ) );
 
         $rows = $wpdb->get_results(
-            "SELECT * FROM `{$t}` WHERE sub_cpmk_id IN ($old_sub_ids) AND cpl_id IN ($old_cpl_ids)",
+            "SELECT * FROM `{$t}` WHERE rps_sub_cpmk_id IN ($old_sub_ids) AND rps_cpl_id IN ($old_cpl_ids)",
             ARRAY_A
         );
 
         foreach ( $rows as $row ) {
-            $new_sub_id = $sub_cpmk_map[ $row['sub_cpmk_id'] ] ?? null;
-            $new_cpl_id = $cpl_map[ $row['cpl_id'] ] ?? null;
+            $new_sub_id = $sub_cpmk_map[ $row['rps_sub_cpmk_id'] ] ?? null;
+            $new_cpl_id = $cpl_map[ $row['rps_cpl_id'] ] ?? null;
 
             if ( $new_sub_id && $new_cpl_id ) {
                 $wpdb->insert( $t, [
-                    'sub_cpmk_id' => $new_sub_id,
-                    'cpl_id'      => $new_cpl_id,
+                    'rps_sub_cpmk_id' => $new_sub_id,
+                    'rps_cpl_id'      => $new_cpl_id,
+                    'persentase'      => $row['persentase'] ?? 0.00,
                 ] );
             }
         }

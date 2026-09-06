@@ -97,13 +97,13 @@ class MockCopyWPDB {
             return $results;
         }
 
-        if (preg_match('/SELECT \* FROM `?(\w+)`? WHERE sub_cpmk_id IN \(([^)]+)\) AND cpl_id IN \(([^)]+)\)/i', $query, $m)) {
+        if (preg_match('/SELECT \* FROM `?(\w+)`? WHERE rps_sub_cpmk_id IN \(([^)]+)\) AND rps_cpl_id IN \(([^)]+)\)/i', $query, $m)) {
             $table = $m[1];
             $subIds = array_map('intval', explode(',', $m[2]));
             $cplIds = array_map('intval', explode(',', $m[3]));
             $results = [];
             foreach ($this->tables[$table] ?? [] as $row) {
-                if (in_array((int)$row['sub_cpmk_id'], $subIds, true) && in_array((int)$row['cpl_id'], $cplIds, true)) {
+                if (in_array((int)$row['rps_sub_cpmk_id'], $subIds, true) && in_array((int)$row['rps_cpl_id'], $cplIds, true)) {
                     $results[] = $row;
                 }
             }
@@ -231,8 +231,9 @@ $wpdb->tables['wp_prodi_rps_sub_cpmk'][41] = [
 
 $wpdb->tables['wp_prodi_rps_korelasi_cpl'][51] = [
     'id' => 51,
-    'sub_cpmk_id' => 41,
-    'cpl_id' => 11,
+    'rps_sub_cpmk_id' => 41,
+    'rps_cpl_id' => 11,
+    'persentase' => 20.00,
 ];
 
 $wpdb->tables['wp_prodi_rps_pertemuan'][61] = [
@@ -323,6 +324,38 @@ ok(count($pertemuan_copied) === 1, "Pertemuan copied to new RPS");
 
 $pustaka_copied = $wpdb->get_results("SELECT * FROM wp_prodi_rps_pustaka WHERE rps_id = $new_rps_id");
 ok(count($pustaka_copied) === 1, "Pustaka copied to new RPS");
+
+// Verify CPMK-CPL mapping copied and remapped
+$new_cpmk_id = $cpmk_copied[0]['id'] ?? null;
+$new_cpl_id  = $cpl_copied[0]['id'] ?? null;
+$cpmk_cpl_rows = array_values(array_filter(
+    $wpdb->tables['wp_prodi_rps_cpmk_cpl'] ?? [],
+    fn($r) => ($r['rps_cpmk_id'] ?? null) == $new_cpmk_id && ($r['rps_cpl_id'] ?? null) == $new_cpl_id
+));
+ok(count($cpmk_cpl_rows) === 1, "CPMK-CPL mapping copied and remapped to new IDs");
+
+// Verify Sub-CPMK Korelasi CPL and persentase copied and remapped
+$new_sub_cpmk_id = $sub_cpmk_copied[0]['id'] ?? null;
+$korelasi_rows = array_values(array_filter(
+    $wpdb->tables['wp_prodi_rps_korelasi_cpl'] ?? [],
+    fn($r) => ($r['rps_sub_cpmk_id'] ?? null) == $new_sub_cpmk_id
+));
+ok(count($korelasi_rows) === 1, "Korelasi CPL copied: row count (1) matches source");
+ok(
+    isset($korelasi_rows[0]) && (int)$korelasi_rows[0]['rps_cpl_id'] === (int)$new_cpl_id,
+    "Korelasi CPL remapped: rps_cpl_id points to new CPL ID ({$new_cpl_id})"
+);
+ok(
+    isset($korelasi_rows[0]) && (float)$korelasi_rows[0]['persentase'] === 20.00,
+    "Korelasi CPL persentase preserved: value is 20.00% (not dropped or 0)"
+);
+
+// Verify Dosen Pengampu copied
+$pengampu_rows = array_values(array_filter(
+    $wpdb->tables['wp_prodi_rps_dosen_pengampu'] ?? [],
+    fn($r) => ($r['rps_id'] ?? null) == $new_rps_id
+));
+ok(count($pengampu_rows) === 1, "Dosen Pengampu copied to new RPS");
 
 echo "\n=======================================\n";
 echo "SUMMARY: Passed: {$passed} | Failed: {$failed}\n";
