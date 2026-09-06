@@ -1,0 +1,21 @@
+🔍 K6 Smoke Pattern Validation
+================================
+File: /Users/putueka/ProjectAplikasi/RPS_App/evidence/phase-3a-langkah6/submit-concurrency-result.json
+
+📊 HTTP Status Distribution:
+  HTTP 200: 1
+  HTTP 403: 9
+  HTTP 409: 0
+  HTTP 500: 0
+  Total Requests: 10
+
+✅ VALIDATION RESULTS:
+====================
+  ✓ Success count: 1 (expected: 1)
+  ✓ Failure count: 9 (expected: 9)
+  ✓ HTTP 500: 0 (good)
+  ✓ Total requests: 10 (expected: 10)
+
+================================
+✅ K6 SMOKE TEST: PASS
+Pattern matches RUN #4 baseline
