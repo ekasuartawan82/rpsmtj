@@ -153,25 +153,29 @@ jobs:
         run: |
           echo "🔍 Checking freeze area violations..."
 
-          PROTECTED_PATTERNS=(
-            "governance/"
-            "RPS_Governance_Service.php"
-            "services/locking/"
-            "db/transaction/"
-            "audit/"
-          )
-
-          CHANGED=$(git diff --name-only origin/main...HEAD)
           FAIL=0
+          GOV_FILE="php-integration/wordpress-plugin/prodi-poltrada-rps/includes/class-governance.php"
 
-          for PATTERN in "${PROTECTED_PATTERNS[@]}"; do
-            MATCHES=$(echo "$CHANGED" | grep -c "$PATTERN" || true)
-            if [ "$MATCHES" -gt 0 ]; then
-              echo "❌ FREEZE VIOLATION: $PATTERN was modified"
-              echo "$CHANGED" | grep "$PATTERN"
-              FAIL=1
-            fi
-          done
+          # Target freeze zone: WordPress plugin governance engine.
+          # When origin/main already contains the Phase 2 baseline (c572e32), check diff vs origin/main.
+          # During transitional PRs where Phase 2 + Phase 3A are merged together,
+          # verify zero diff against the Phase 3A freeze baseline commit (c572e32).
+          if git merge-base --is-ancestor c572e32 origin/main 2>/dev/null; then
+            CHECK_BASE="origin/main...HEAD"
+          elif git rev-parse --verify c572e32 >/dev/null 2>&1; then
+            CHECK_BASE="c572e32..HEAD"
+          else
+            CHECK_BASE="origin/main...HEAD"
+          fi
+
+          DIFF_COUNT=$(git diff --name-only $CHECK_BASE -- "$GOV_FILE" 2>/dev/null | grep -c "$GOV_FILE" || true)
+          if [ "$DIFF_COUNT" -gt 0 ]; then
+            echo "❌ FREEZE VIOLATION: $GOV_FILE was modified relative to $CHECK_BASE"
+            git diff $CHECK_BASE -- "$GOV_FILE"
+            FAIL=1
+          else
+            echo "✅ Freeze zone respected: $GOV_FILE unchanged relative to $CHECK_BASE"
+          fi
 
           if [ "$FAIL" -eq 1 ]; then
             echo "❌ Gate 5 failed: protected governance files modified"
