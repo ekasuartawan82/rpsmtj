@@ -521,6 +521,9 @@ class Prodi_RPS_DB {
         if (!empty($filters['prodi_code'])) {
             $where[] = 'r.prodi_code = %s';
             $params[] = strtoupper(sanitize_text_field((string) $filters['prodi_code']));
+        } elseif ($actor['role'] !== self::ROLE_ADMIN && !empty($actor['prodi_code'])) {
+            $where[] = 'r.prodi_code = %s';
+            $params[] = strtoupper(sanitize_text_field((string) $actor['prodi_code']));
         }
 
         if ($actor['role'] === self::ROLE_DOSEN) {
@@ -645,6 +648,13 @@ class Prodi_RPS_DB {
     {
         if ($actor['role'] === self::ROLE_ADMIN) {
             return true;
+        }
+
+        // Prodi scope filter: non-admin must match the RPS prodi_code
+        $actorProdi = !empty($actor['prodi_code']) ? strtoupper(trim((string) $actor['prodi_code'])) : '';
+        $rpsProdi = !empty($rps['prodi_code']) ? strtoupper(trim((string) $rps['prodi_code'])) : '';
+        if ($rpsProdi !== '' && $actorProdi !== '' && $actorProdi !== $rpsProdi) {
+            return false;
         }
 
         if ($actor['role'] === self::ROLE_DOSEN) {

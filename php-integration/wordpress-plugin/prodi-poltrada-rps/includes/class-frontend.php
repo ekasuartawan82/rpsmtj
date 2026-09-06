@@ -77,6 +77,15 @@ class Prodi_RPS_Frontend {
         $success = false;
         $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
 
+        if ($rpsId > 0 && $action !== 'create_rps') {
+            if (!class_exists('Prodi_Scope_Filter')) {
+                require_once dirname(__FILE__) . '/class-prodi-scope-filter.php';
+            }
+            if (!Prodi_Scope_Filter::validate_rps_access($rpsId, $actor['id'])) {
+                wp_die(esc_html__('Akses lintas program studi ditolak.', 'prodi-poltrada-rps'), 403);
+            }
+        }
+
         switch ($action) {
             case 'create_rps':
                 $createdId = $this->handle_create_rps($actor);
