@@ -169,9 +169,9 @@ function ok($cond, $label): void {
 }
 
 // --- actors ---
-$dosen   = ['id' => 991, 'role' => Prodi_RPS_DB::ROLE_DOSEN, 'name' => 'Dosen Test'];
-$rmk     = ['id' => 992, 'role' => Prodi_RPS_DB::ROLE_KOORDINATOR_RMK, 'name' => 'RMK Test'];
-$kaprodi = ['id' => 993, 'role' => Prodi_RPS_DB::ROLE_KAPRODI, 'name' => 'Kaprodi Test'];
+$dosen   = ['id' => 991, 'role' => Prodi_RPS_DB::ROLE_DOSEN, 'name' => 'Dosen Test', 'prodi_code' => 'MTJ'];
+$rmk     = ['id' => 992, 'role' => Prodi_RPS_DB::ROLE_KOORDINATOR_RMK, 'name' => 'RMK Test', 'prodi_code' => 'MTJ'];
+$kaprodi = ['id' => 993, 'role' => Prodi_RPS_DB::ROLE_KAPRODI, 'name' => 'Kaprodi Test', 'prodi_code' => 'MTJ'];
 
 // Helper: seed a fresh RPS in a chosen workflow state.
 function seedRps(int $id, string $workflowStatus, int $lockVersion, array $extra = []): void {
@@ -179,6 +179,7 @@ function seedRps(int $id, string $workflowStatus, int $lockVersion, array $extra
     $wpdb->insert(Prodi_RPS_DB::table('rps'), array_merge([
         'id' => $id,
         'mata_kuliah_id' => $id,
+        'prodi_code' => 'MTJ',
         'dosen_pengembang_user_id' => 991,
         'koordinator_rmk_user_id' => 992,
         'kaprodi_user_id' => 993,

@@ -137,7 +137,7 @@ require_once __DIR__ . '/includes/class-rps-validator.php';
 $db = new Prodi_RPS_DB();
 $validator = new Prodi_RPS_Validator($db);
 
-$dosen = ['id' => 1, 'role' => Prodi_RPS_DB::ROLE_DOSEN, 'name' => 'Dosen'];
+$dosen = ['id' => 1, 'role' => Prodi_RPS_DB::ROLE_DOSEN, 'name' => 'Dosen', 'prodi_code' => 'MTJ'];
 
 $pass = 0; $fail = 0;
 function ok($cond, $label): void {
@@ -260,6 +260,7 @@ function seedRpsHeader(int $id, array $override = []): void {
     $wpdb->insert(Prodi_RPS_DB::table('rps'), array_merge([
         'id' => $id,
         'mata_kuliah_id' => $id,
+        'prodi_code' => 'MTJ',
         'dosen_pengembang_user_id' => 1,
         'koordinator_rmk_user_id' => 2,
         'kaprodi_user_id' => 3,

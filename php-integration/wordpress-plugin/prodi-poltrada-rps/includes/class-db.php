@@ -518,12 +518,21 @@ class Prodi_RPS_DB {
         }
 
         // Prodi filter (Slice 7) — applied at query layer, never in governance logic
-        if (!empty($filters['prodi_code'])) {
+        if ($actor['role'] === self::ROLE_ADMIN) {
+            // Admin politeknik can filter by any prodi, or see all if unprovided
+            if (!empty($filters['prodi_code'])) {
+                $where[] = 'r.prodi_code = %s';
+                $params[] = strtoupper(sanitize_text_field((string) $filters['prodi_code']));
+            }
+        } else {
+            // Defensive clamping: non-admin can NEVER query cross-prodi, even if requested in $filters
+            $actorProdi = !empty($actor['prodi_code']) ? strtoupper(trim((string) $actor['prodi_code'])) : '';
+            if ($actorProdi === '') {
+                // Fail-closed: actor has no assigned prodi -> cannot view any scoped RPS
+                return [];
+            }
             $where[] = 'r.prodi_code = %s';
-            $params[] = strtoupper(sanitize_text_field((string) $filters['prodi_code']));
-        } elseif ($actor['role'] !== self::ROLE_ADMIN && !empty($actor['prodi_code'])) {
-            $where[] = 'r.prodi_code = %s';
-            $params[] = strtoupper(sanitize_text_field((string) $actor['prodi_code']));
+            $params[] = $actorProdi;
         }
 
         if ($actor['role'] === self::ROLE_DOSEN) {
@@ -650,11 +659,23 @@ class Prodi_RPS_DB {
             return true;
         }
 
-        // Prodi scope filter: non-admin must match the RPS prodi_code
-        $actorProdi = !empty($actor['prodi_code']) ? strtoupper(trim((string) $actor['prodi_code'])) : '';
-        $rpsProdi = !empty($rps['prodi_code']) ? strtoupper(trim((string) $rps['prodi_code'])) : '';
-        if ($rpsProdi !== '' && $actorProdi !== '' && $actorProdi !== $rpsProdi) {
-            return false;
+        // Prodi scope filter: non-admin must match the RPS prodi_code (fail-closed)
+        $actorProdi = $actor['prodi_code'] ?? null;
+        if ($actorProdi === null && class_exists('Prodi_Scope_Filter') && !empty($actor['id'])) {
+            $actorProdi = Prodi_Scope_Filter::get_user_prodi((int) $actor['id']) ?: null;
+        }
+        $rpsProdi = $rps['prodi_code'] ?? null;
+
+        if (class_exists('Prodi_Scope_Filter')) {
+            if (!Prodi_Scope_Filter::match_prodi($actorProdi, $rpsProdi, false)) {
+                return false;
+            }
+        } else {
+            $actorClean = is_string($actorProdi) ? strtoupper(trim((string) $actorProdi)) : '';
+            $rpsClean = is_string($rpsProdi) ? strtoupper(trim((string) $rpsProdi)) : '';
+            if ($actorClean === '' || $rpsClean === '' || $actorClean !== $rpsClean) {
+                return false;
+            }
         }
 
         if ($actor['role'] === self::ROLE_DOSEN) {
@@ -677,6 +698,10 @@ class Prodi_RPS_DB {
     {
         if ($actor['role'] === self::ROLE_ADMIN) {
             return true;
+        }
+
+        if (!$this->can_access_rps($rps, $actor)) {
+            return false;
         }
 
         $editableStatuses = [self::STATUS_DRAFT, self::STATUS_REVISION_BY_RMK, self::STATUS_REVISION_BY_KAPRODI];
