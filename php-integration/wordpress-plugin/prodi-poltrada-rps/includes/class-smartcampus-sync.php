@@ -3,8 +3,9 @@
 /**
  * Smartcampus Sync
  *
- * Imports dosen data from Smartcampus CSV into wp_prodi_smartcampus_sync,
- * then links matched rows to wp_user_id and upserts wp_prodi_user_profile.
+ * Imports dosen data from Smartcampus CSV into the wp_prodi_smartcampus_sync
+ * staging table, then — for rows matched to a WordPress user by email — writes
+ * prodi code and default RPS role into wp_usermeta (rps_prodi_code / rps_role).
  *
  * MVP: file import only. API sync = future slice.
  *
@@ -66,8 +67,7 @@ class Prodi_Smartcampus_Sync {
         $errors   = [];
         $row_num  = 1;
 
-        $sync_table    = $wpdb->prefix . 'prodi_smartcampus_sync';
-        $profile_table = $wpdb->prefix . 'prodi_user_profile';
+        $sync_table = $wpdb->prefix . 'prodi_smartcampus_sync';
 
         while ( ( $row = fgetcsv( $handle ) ) !== false ) {
             $row_num++;
@@ -127,17 +127,15 @@ class Prodi_Smartcampus_Sync {
                 continue;
             }
 
-            // If linked to a WP user, upsert wp_prodi_user_profile
+            // If linked to a WP user, store prodi + default RPS role in wp_usermeta
+            // (editable from the standard WordPress Users screen; no extra table).
             if ( $wp_user_id ) {
-                $wpdb->query( $wpdb->prepare(
-                    "INSERT INTO `{$profile_table}` (user_id, prodi_code, academic_role)
-                     VALUES (%d, %s, 'dosen')
-                     ON DUPLICATE KEY UPDATE
-                       prodi_code    = VALUES(prodi_code),
-                       is_active     = 1",
-                    $wp_user_id,
-                    $prodi_code
-                ) );
+                update_user_meta( $wp_user_id, 'rps_prodi_code', $prodi_code );
+                // Only set a default role if none is present yet (don't clobber a
+                // reviewer role already assigned by an admin).
+                if ( ! get_user_meta( $wp_user_id, 'rps_role', true ) ) {
+                    update_user_meta( $wp_user_id, 'rps_role', 'dosen' );
+                }
             }
 
             $imported++;

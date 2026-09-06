@@ -1,0 +1,24 @@
+=== ACCESS CONTROL RUNTIME VERIFICATION (T1 - T3) ===
+
+Actor MTJ: ID 2 | Role: dosen | Prodi: MTJ
+Actor TO:  ID 8 | Role: dosen | Prodi: TO
+Actor ADM: ID 1 | Role: admin | Prodi: NULL (Bypass)
+
+[T1] Same-Prodi Access:
+  - Filter validate_rps_access(RPS 1, Actor 2): ALLOWED
+  - DB get_rps_detail(RPS 1, Actor MTJ):       ALLOWED
+  => Verdict: PASS
+
+[T2] Cross-Prodi Access (Must be DENIED):
+  - Dosen MTJ -> RPS 3 (TO):
+      Filter validate: DENIED (Expected 403)
+      DB detail:       DENIED (Expected null)
+  - Dosen TO -> RPS 1 (MTJ):
+      Filter validate: DENIED (Expected 403)
+      DB detail:       DENIED (Expected null)
+  => Verdict: PASS
+
+[T3] Admin Bypass:
+  - Admin -> RPS 1 (MTJ): Filter=ALLOWED, DB=ALLOWED
+  - Admin -> RPS 3 (TO):  Filter=ALLOWED, DB=ALLOWED
+  => Verdict: PASS

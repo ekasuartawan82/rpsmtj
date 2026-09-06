@@ -1,0 +1,27 @@
+🔍 Prodi Scope Validation
+=======================
+
+1. Checking prodi_code columns in domain tables...
+  ✓ wp_prodi_rps.prodi_code exists
+  ✓ wp_prodi_kurikulum.prodi_code exists
+
+2. Checking user prodi mappings in wp_usermeta (meta_key = 'rps_prodi_code')...
+  ✓ User prodi assignments found in usermeta: 7
+
+3. Checking prodi distribution across users...
+  mysql:      [Warning]  Using  a  password  on  the  command  line  interface  can  be  insecure.
+  prodi_code  count
+  MTJ         6
+  TO          1
+
+  ✓ MTJ profile found in usermeta
+  ✓ TO profile found in usermeta
+
+=======================
+✅ PRODI SCOPE CHECK: COMPLETE
+
+Next steps:
+1. Test same-prodi access (T1)
+2. Test cross-prodi access (T2)
+3. Test admin access (T3)
+4. Run K6 smoke test (T4)

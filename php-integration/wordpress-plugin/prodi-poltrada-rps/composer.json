@@ -1,0 +1,14 @@
+{
+    "name": "poltrada/prodi-poltrada-rps",
+    "description": "Modul RPS PHP/MySQL untuk integrasi WordPress Prodi Poltrada.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=7.4",
+        "mpdf/mpdf": "^8.0"
+    },
+    "config": {
+        "vendor-dir": "vendor",
+        "optimize-autoloader": true
+    }
+}

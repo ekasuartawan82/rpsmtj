@@ -1,0 +1,19 @@
+=== COPY-AS-DRAFT REAL RUNTIME VERIFICATION ===
+
+[Copy-1] Cross-Prodi Copy Guard:
+  ✓ Cross-prodi copy BLOCKED: Access denied: actor 2 cannot copy RPS 3 (prodi mismatch)
+  => Verdict: PASS
+
+[Copy-2] Same-Prodi Copy Execution:
+  ✓ New draft created with ID: 7
+  - Source RPS (ID 3):
+      workflow_status = approved (Must be approved - IMMUTABLE)
+      lock_version    = 1
+      is_current      = 0 (Must be 0 - superseded)
+  - New Draft RPS (ID 7):
+      workflow_status = draft (Must be draft)
+      lock_version    = 1 (Must be 1)
+      is_current      = 1 (Must be 1)
+      parent_rps_id   = 3 (Must be 3)
+      prodi_code      = TO (Must match TO)
+  => Verdict: PASS

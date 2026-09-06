@@ -7,11 +7,15 @@ if (!defined('WPINC')) {
 class Prodi_RPS_Frontend {
     private Prodi_RPS_DB $db;
     private Prodi_RPS_Governance_Service $governance;
+    private Prodi_RPS_Validator $validator;
+    private Prodi_RPS_Pdf $pdf;
 
-    public function __construct(Prodi_RPS_DB $db, Prodi_RPS_Governance_Service $governance)
+    public function __construct(Prodi_RPS_DB $db, Prodi_RPS_Governance_Service $governance, Prodi_RPS_Validator $validator, Prodi_RPS_Pdf $pdf)
     {
         $this->db = $db;
         $this->governance = $governance;
+        $this->validator = $validator;
+        $this->pdf = $pdf;
 
         add_shortcode('prodi_rps_app', [$this, 'render_shortcode']);
         add_action('template_redirect', [$this, 'handle_form_actions']);
@@ -33,6 +37,14 @@ class Prodi_RPS_Frontend {
 
         // Dashboard filter (Slice 7) — prodi-scoped RPS list query
         add_action('wp_ajax_prodi_rps_dashboard_list', [$this, 'ajax_dashboard_list']);
+
+        // Validation & warnings (Phase 4) — OBE blockers + W-01..W-04
+        add_action('wp_ajax_prodi_rps_validate', [$this, 'ajax_validate']);
+        add_action('wp_ajax_prodi_rps_warnings', [$this, 'ajax_warnings']);
+        add_action('wp_ajax_prodi_rps_acknowledge_warning', [$this, 'ajax_acknowledge_warning']);
+
+        // PDF export (Phase 4) — approved RPS only, streams a download
+        add_action('wp_ajax_prodi_rps_export_pdf', [$this, 'ajax_export_pdf']);
     }
 
     public function enqueue_assets(): void
@@ -64,6 +76,15 @@ class Prodi_RPS_Frontend {
         $redirect = wp_get_referer() ?: home_url('/');
         $success = false;
         $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
+
+        if ($rpsId > 0 && $action !== 'create_rps') {
+            if (!class_exists('Prodi_Scope_Filter')) {
+                require_once dirname(__FILE__) . '/class-prodi-scope-filter.php';
+            }
+            if (!Prodi_Scope_Filter::validate_rps_access($rpsId, $actor['id'])) {
+                wp_die(esc_html__('Akses lintas program studi ditolak.', 'prodi-poltrada-rps'), 403);
+            }
+        }
 
         switch ($action) {
             case 'create_rps':
@@ -170,8 +191,8 @@ class Prodi_RPS_Frontend {
             require_once dirname(__FILE__) . '/class-prodi-scope-filter.php';
         }
 
-        if (!Prodi_Scope_Filter::validate_rps_access($rpsId, $actor['user_id'])) {
-            $actor_prodi = Prodi_Scope_Filter::get_user_prodi($actor['user_id']);
+        if (!Prodi_Scope_Filter::validate_rps_access($rpsId, $actor['id'])) {
+            $actor_prodi = Prodi_Scope_Filter::get_user_prodi($actor['id']);
             $rps_prodi = Prodi_Scope_Filter::get_rps_prodi($rpsId);
 
             wp_send_json_error([
@@ -783,7 +804,7 @@ class Prodi_RPS_Frontend {
             $filters['status'] = sanitize_key( $_POST['status'] );
         }
 
-        $rps_list = $this->db->get_rps_list( $filters, $actor );
+        $rps_list = $this->db->list_rps( $actor, $filters );
 
         wp_send_json_success( [
             'actor_prodi'   => $prodi_filter,
@@ -791,6 +812,130 @@ class Prodi_RPS_Frontend {
             'total'         => count( $rps_list ),
             'items'         => $rps_list,
         ] );
+    }
+
+    /**
+     * AJAX: Evaluate OBE hard blockers for an RPS (does not submit).
+     * Action: wp_ajax_prodi_rps_validate
+     * POST: nonce, rps_id
+     */
+    public function ajax_validate(): void {
+        if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+            return;
+        }
+        if (!is_user_logged_in()) {
+            wp_send_json_error(['message' => 'Not authenticated'], 401);
+            return;
+        }
+
+        $actor = $this->db->current_actor();
+        $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
+        if ($rpsId <= 0 || !$actor) {
+            wp_send_json_error(['message' => 'Data tidak lengkap.'], 400);
+            return;
+        }
+
+        $violations = $this->validator->collect_violations($rpsId, $actor);
+        wp_send_json_success([
+            'ready'      => $violations === [],
+            'violations' => $violations,
+            'count'      => count($violations),
+        ]);
+    }
+
+    /**
+     * AJAX: Compute institutional soft warnings (W-01..W-04) + ack status.
+     * Action: wp_ajax_prodi_rps_warnings
+     * POST: nonce, rps_id
+     */
+    public function ajax_warnings(): void {
+        if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+            return;
+        }
+        if (!is_user_logged_in()) {
+            wp_send_json_error(['message' => 'Not authenticated'], 401);
+            return;
+        }
+
+        $actor = $this->db->current_actor();
+        $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
+        if ($rpsId <= 0 || !$actor) {
+            wp_send_json_error(['message' => 'Data tidak lengkap.'], 400);
+            return;
+        }
+
+        $all      = $this->validator->compute_warnings($rpsId, $actor);
+        $pending  = $this->validator->unacknowledged_warnings($rpsId, $actor);
+        $pendingIds = array_values(array_unique(array_column($pending, 'id')));
+
+        wp_send_json_success([
+            'warnings'            => $all,
+            'unacknowledged_ids'  => $pendingIds,
+            'all_acknowledged'    => $pending === [],
+        ]);
+    }
+
+    /**
+     * AJAX: Acknowledge a single warning id for an RPS.
+     * Action: wp_ajax_prodi_rps_acknowledge_warning
+     * POST: nonce, rps_id, warning_id
+     */
+    public function ajax_acknowledge_warning(): void {
+        if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+            return;
+        }
+        if (!is_user_logged_in()) {
+            wp_send_json_error(['message' => 'Not authenticated'], 401);
+            return;
+        }
+
+        $actor = $this->db->current_actor();
+        $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
+        $warningId = isset($_POST['warning_id']) ? sanitize_text_field(wp_unslash($_POST['warning_id'])) : '';
+        if ($rpsId <= 0 || $warningId === '' || !$actor) {
+            wp_send_json_error(['message' => 'Data tidak lengkap.'], 400);
+            return;
+        }
+
+        try {
+            $this->validator->acknowledge_warning($rpsId, $warningId, $actor);
+            wp_send_json_success(['acknowledged' => $warningId]);
+        } catch (RPS_Input_Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()], 403);
+        }
+    }
+
+    /**
+     * AJAX: Export an approved RPS to PDF (binary download, not JSON).
+     * Action: wp_ajax_prodi_rps_export_pdf
+     * POST: nonce, rps_id
+     */
+    public function ajax_export_pdf(): void {
+        if (!check_ajax_referer('prodi_rps_ajax', 'nonce', false)) {
+            wp_die('Invalid nonce', 403);
+        }
+        if (!is_user_logged_in()) {
+            wp_die('Not authenticated', 401);
+        }
+
+        $actor = $this->db->current_actor();
+        $rpsId = isset($_POST['rps_id']) ? absint($_POST['rps_id']) : 0;
+        if ($rpsId <= 0 || !$actor) {
+            wp_die('Data tidak lengkap.', '', 400);
+        }
+
+        try {
+            $this->pdf->export_pdf($rpsId, $actor);
+            // export_pdf streams the binary and exits; nothing else to do.
+        } catch (RPS_Input_Exception $e) {
+            wp_die(esc_html($e->getMessage()), '', 403);
+        } catch (RuntimeException $e) {
+            // mPDF not installed — surface a clear, actionable message.
+            wp_die(esc_html($e->getMessage()), '', 500);
+        }
     }
 
     /**
