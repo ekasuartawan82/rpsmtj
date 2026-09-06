@@ -212,7 +212,7 @@ class Prodi_RPS_Copy {
                 'kode'                         => $row['kode'],
                 'deskripsi'                    => $row['deskripsi'],
                 'urutan'                       => $row['urutan'],
-                'target_ketercapaian_persen'   => $row['target_ketercapaian_persen'],
+                'target_ketercapaian_persen'   => $row['target_ketercapaian_persen'] ?? null,
                 'aktual_ketercapaian_persen'   => null, // reset for new semester
             ] );
             $map[ $row['id'] ] = (int) $wpdb->insert_id;
@@ -233,25 +233,24 @@ class Prodi_RPS_Copy {
         $old_cpl_ids = implode( ',', array_map( 'intval', array_keys( $cpl_map ) ) );
 
         $rows = $wpdb->get_results(
-            "SELECT * FROM `{$t}` WHERE rps_sub_cpmk_id IN ($old_sub_ids) AND rps_cpl_id IN ($old_cpl_ids)",
+            "SELECT * FROM `{$t}` WHERE sub_cpmk_id IN ($old_sub_ids) AND cpl_id IN ($old_cpl_ids)",
             ARRAY_A
         );
 
         foreach ( $rows as $row ) {
-            $new_sub_id = $sub_cpmk_map[ $row['rps_sub_cpmk_id'] ] ?? null;
-            $new_cpl_id = $cpl_map[ $row['rps_cpl_id'] ] ?? null;
+            $new_sub_id = $sub_cpmk_map[ $row['sub_cpmk_id'] ] ?? null;
+            $new_cpl_id = $cpl_map[ $row['cpl_id'] ] ?? null;
 
             if ( $new_sub_id && $new_cpl_id ) {
                 $wpdb->insert( $t, [
-                    'rps_sub_cpmk_id' => $new_sub_id,
-                    'rps_cpl_id'      => $new_cpl_id,
-                    'persentase'      => $row['persentase'],
+                    'sub_cpmk_id' => $new_sub_id,
+                    'cpl_id'      => $new_cpl_id,
                 ] );
             }
         }
     }
 
-    /** Copy rps_pertemuan with sub_cpmk_id remapped. Returns old_id → new_id map. */
+    /** Copy rps_pertemuan using remapped sub_cpmk IDs. Returns old_id → new_id map. */
     private static function copy_rps_pertemuan( int $source_id, int $new_id, array $sub_cpmk_map ): array {
         global $wpdb;
         $t = $wpdb->prefix . 'prodi_rps_pertemuan';
@@ -270,47 +269,55 @@ class Prodi_RPS_Copy {
             $wpdb->insert( $t, [
                 'rps_id'                       => $new_id,
                 'order_no'                     => $row['order_no'],
-                'week_label'                   => $row['week_label'],
+                'week_label'                   => $row['week_label'] ?? null,
                 'tipe'                         => $row['tipe'],
                 'sub_cpmk_id'                  => $new_sub_cpmk_id,
-                'sub_cpmk_text'                => $row['sub_cpmk_text'],
-                'indikator_penilaian'          => $row['indikator_penilaian'],
-                'teknik_penilaian'             => $row['teknik_penilaian'],
-                'kriteria_penilaian'           => $row['kriteria_penilaian'],
-                'bentuk_pembelajaran_luring'   => $row['bentuk_pembelajaran_luring'],
-                'bentuk_pembelajaran_daring'   => $row['bentuk_pembelajaran_daring'],
-                'metode_pembelajaran'          => $row['metode_pembelajaran'],
-                'catatan_penugasan'            => $row['catatan_penugasan'],
-                'estimasi_waktu_pb'            => $row['estimasi_waktu_pb'],
-                'estimasi_waktu_pt'            => $row['estimasi_waktu_pt'],
-                'estimasi_waktu_km'            => $row['estimasi_waktu_km'],
-                'bentuk_daring'                => $row['bentuk_daring'],
-                'materi_pembelajaran'          => $row['materi_pembelajaran'],
-                'bobot_penilaian_persen'       => $row['bobot_penilaian_persen'],
-                'deskripsi_evaluasi'           => $row['deskripsi_evaluasi'],
+                'sub_cpmk_text'                => $row['sub_cpmk_text'] ?? null,
+                'indikator_penilaian'          => $row['indikator_penilaian'] ?? null,
+                'teknik_penilaian'             => $row['teknik_penilaian'] ?? null,
+                'kriteria_penilaian'           => $row['kriteria_penilaian'] ?? null,
+                'bentuk_pembelajaran_luring'   => $row['bentuk_pembelajaran_luring'] ?? null,
+                'bentuk_pembelajaran_daring'   => $row['bentuk_pembelajaran_daring'] ?? null,
+                'metode_pembelajaran'          => $row['metode_pembelajaran'] ?? null,
+                'catatan_penugasan'            => $row['catatan_penugasan'] ?? null,
+                'estimasi_waktu_pb'            => $row['estimasi_waktu_pb'] ?? null,
+                'estimasi_waktu_pt'            => $row['estimasi_waktu_pt'] ?? null,
+                'estimasi_waktu_km'            => $row['estimasi_waktu_km'] ?? null,
+                'bentuk_daring'                => $row['bentuk_daring'] ?? null,
+                'materi_pembelajaran'          => $row['materi_pembelajaran'] ?? null,
+                'bobot_penilaian_persen'       => $row['bobot_penilaian_persen'] ?? 0,
+                'deskripsi_evaluasi'           => $row['deskripsi_evaluasi'] ?? null,
                 // Runtime fields reset for new semester
                 'status_pelaksanaan'           => null,
                 'materi_aktual'                => null,
                 'catatan_deviasi'              => null,
                 'tanggal_pelaksanaan'          => null,
-                'pustaka_refs'                 => $row['pustaka_refs'],
-                'notes'                        => $row['notes'],
+                'pustaka_refs'                 => $row['pustaka_refs'] ?? null,
+                'notes'                        => $row['notes'] ?? null,
             ] );
             $map[ $row['id'] ] = (int) $wpdb->insert_id;
         }
         return $map;
     }
 
-    /** Copy rps_pustaka. */
+    /** Copy rps_pustaka rows. */
     private static function copy_rps_pustaka( int $source_id, int $new_id ): void {
         global $wpdb;
         $t = $wpdb->prefix . 'prodi_rps_pustaka';
 
-        $wpdb->query( $wpdb->prepare(
-            "INSERT INTO `{$t}` (rps_id, kategori, teks_lengkap, urutan)
-             SELECT %d, kategori, teks_lengkap, urutan FROM `{$t}` WHERE rps_id = %d",
-            $new_id, $source_id
-        ) );
+        $rows = $wpdb->get_results(
+            $wpdb->prepare( "SELECT * FROM `{$t}` WHERE rps_id = %d", $source_id ),
+            ARRAY_A
+        );
+
+        foreach ( $rows as $row ) {
+            $wpdb->insert( $t, [
+                'rps_id'        => $new_id,
+                'kategori'      => $row['kategori'] ?? 'utama',
+                'teks_lengkap'  => $row['teks_lengkap'] ?? '',
+                'urutan'        => $row['urutan'] ?? 1,
+            ] );
+        }
     }
 
     /** Copy rps_rtm with sub_cpmk_id remapped. Returns old_id → new_id map. */
@@ -377,15 +384,23 @@ class Prodi_RPS_Copy {
         }
     }
 
-    /** Copy rps_dosen_pengampu — dosen_pengembang becomes the actor. */
+    /** Copy rps_dosen_pengampu rows. */
     private static function copy_rps_dosen_pengampu( int $source_id, int $new_id ): void {
         global $wpdb;
         $t = $wpdb->prefix . 'prodi_rps_dosen_pengampu';
 
-        $wpdb->query( $wpdb->prepare(
-            "INSERT INTO `{$t}` (rps_id, user_id, is_pengembang, urutan)
-             SELECT %d, user_id, is_pengembang, urutan FROM `{$t}` WHERE rps_id = %d",
-            $new_id, $source_id
-        ) );
+        $rows = $wpdb->get_results(
+            $wpdb->prepare( "SELECT * FROM `{$t}` WHERE rps_id = %d", $source_id ),
+            ARRAY_A
+        );
+
+        foreach ( $rows as $row ) {
+            $wpdb->insert( $t, [
+                'rps_id'        => $new_id,
+                'user_id'       => $row['user_id'],
+                'is_pengembang' => $row['is_pengembang'] ?? 0,
+                'urutan'        => $row['urutan'] ?? 1,
+            ] );
+        }
     }
 }
