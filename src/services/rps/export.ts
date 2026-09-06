@@ -317,7 +317,7 @@ export async function generateRpsExportData(
   };
 }
 
-function useNewRpsDocumentEngine() {
+function shouldUseNewRpsDocumentEngine() {
   return process.env.USE_NEW_RPS_DOCUMENT_ENGINE !== "0";
 }
 
@@ -371,7 +371,7 @@ export async function exportRpsToPdf(
   rpsId: string,
   options: ExportRpsOptions
 ): Promise<{ buffer: Buffer; filename: string }> {
-  if (useNewRpsDocumentEngine()) {
+  if (shouldUseNewRpsDocumentEngine()) {
     const { buffer, filename } = await exportRpsPdfWithNewEngine(rpsId, {
       actorUserId: options.actorUserId,
       actorRole: options.actorRole,
@@ -387,7 +387,7 @@ export async function exportRpsHtml(
   rpsId: string,
   options: ExportRpsHtmlOptions
 ): Promise<string> {
-  if (useNewRpsDocumentEngine()) {
+  if (shouldUseNewRpsDocumentEngine()) {
     return exportRpsHtmlWithNewEngine(rpsId, {
       actorUserId: options.actorUserId,
       actorRole: options.actorRole,

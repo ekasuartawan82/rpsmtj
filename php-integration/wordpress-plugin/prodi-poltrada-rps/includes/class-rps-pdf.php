@@ -23,6 +23,28 @@ class Prodi_RPS_Pdf
     }
 
     /**
+     * Resolve a writable scratch directory for mPDF's internal cache.
+     * Falls back to the system temp dir if the WP uploads dir isn't writable.
+     */
+    private function get_mpdf_temp_dir(): string
+    {
+        $uploads = function_exists('wp_upload_dir') ? wp_upload_dir() : null;
+        $base = is_array($uploads) ? ($uploads['basedir'] ?? '') : '';
+
+        if ($base !== '' && is_dir($base) && is_writable($base)) {
+            $dir = rtrim($base, '/') . '/prodi-rps-mpdf-tmp';
+            if (!is_dir($dir)) {
+                wp_mkdir_p($dir);
+            }
+            if (is_dir($dir) && is_writable($dir)) {
+                return $dir;
+            }
+        }
+
+        return sys_get_temp_dir();
+    }
+
+    /**
      * Export an approved RPS as a PDF download (sends HTTP headers + body).
      *
      * @param int   $rpsId
@@ -69,6 +91,10 @@ class Prodi_RPS_Pdf
             'margin_top'    => 18,
             'margin_bottom' => 18,
             'default_font'  => 'sans-serif',
+            // mPDF needs a writable scratch dir for its internal cache; the plugin
+            // folder itself may be read-only in production (e.g. mounted :ro), so
+            // point it at the WP uploads dir instead of vendor/mpdf/mpdf/tmp.
+            'tempDir'       => $this->get_mpdf_temp_dir(),
         ]);
         $mpdf->SetTitle('RPS ' . ($rps['kode_mk'] ?? '') . ' v' . ($rps['version_number'] ?? 1));
         $mpdf->WriteHTML($html);

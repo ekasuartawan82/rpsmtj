@@ -592,14 +592,16 @@ class Prodi_RPS_DB {
         global $wpdb;
 
         $rpsTable = self::table('rps');
+        $mkTable = self::table('kurikulum');
         $usersTable = $wpdb->users;
 
         $sql = $wpdb->prepare(
-            "SELECT r.*,
+            "SELECT r.*, mk.kode_mk, mk.nama_mk, mk.program_studi,
                     dev.display_name AS dosen_pengembang_name, dev.user_email AS dosen_pengembang_email,
                     rmk.display_name AS koordinator_rmk_name, kap.display_name AS kaprodi_name,
                     r.version_number AS version_no
              FROM {$rpsTable} r
+             LEFT JOIN {$mkTable} mk ON mk.id = r.mata_kuliah_id
              LEFT JOIN {$usersTable} dev ON dev.ID = r.dosen_pengembang_user_id
              LEFT JOIN {$usersTable} rmk ON rmk.ID = r.koordinator_rmk_user_id
              LEFT JOIN {$usersTable} kap ON kap.ID = r.kaprodi_user_id
